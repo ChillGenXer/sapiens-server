@@ -47,7 +47,7 @@ backup_server() {
 }
 
 upgrade_server() {
-    steamcmd +runscript steamupdate.txt
+    steamcmd +runscript ~/sapiens-server/steamupdate.txt
 }
 
 open_console() {
