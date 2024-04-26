@@ -1,5 +1,6 @@
 # sapiens-server
 Some helpful scripts for running a Sapiens dedicated server on Linux.
+**Current Sapiens Version: 0.5.0.37**
 
 This package assumes you have an Ubuntu 23.10 installation ready and a user that the server will run under setup which has sudo access.  
 
@@ -54,6 +55,7 @@ We are now going to update our config.sh file to put in the relevant directories
 
 Your server is now ready to run.  From now on, when you log in you can change to the sapiens-server directory and you can use the command script:
 
+## Commands
 
 **./sapiens.sh start** - starts your server in a screen session so it is running in the background.<br>
 **./sapiens.sh stop** - stops your server running in the background.<br>
