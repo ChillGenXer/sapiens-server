@@ -13,7 +13,8 @@ Now navigate to the new directory:<br>
 
 ``cd sapiens-server``
 
-Now we need to make the install script executable:
+Now we need to make the install script executable:<br>
+
 ``chmod +x install.sh``
 
 Now run it:
