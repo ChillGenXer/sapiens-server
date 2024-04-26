@@ -54,10 +54,10 @@ We are now going to update our config.sh file to put in the relevant directories
 Your server is now ready to run.  From now on, when you log in you can change to the sapiens-server directory and you can use the command script:
 
 
-**./sapiens.sh start** - starts your server in a screen session so it is running in the background.
-**./sapiens.sh stop** - stops your server running in the background.
-**./sapiens.sh restart** - Basically a stop, wait, and then a start.  Good to bounce the server if things are getting laggy.
-**./sapiens.sh upgrade** - This will run the Steam upgrade script and either update or refresh the Sapiens server executable.
-**./sapiens.sh backup** - Backs up the world to the designated backup folder.
-**./sapiens.sh console** - When a server is running in the background use this command to bring up the server console.  To exit the console without stopping the server hold CTRL and type A D.
+**./sapiens.sh start** - starts your server in a screen session so it is running in the background.<br>
+**./sapiens.sh stop** - stops your server running in the background.<br>
+**./sapiens.sh restart** - Basically a stop, wait, and then a start.  Good to bounce the server if things are getting laggy.<br>
+**./sapiens.sh upgrade** - This will run the Steam upgrade script and either update or refresh the Sapiens server executable.<br>
+**./sapiens.sh backup** - Backs up the world to the designated backup folder.<br>
+**./sapiens.sh console** - When a server is running in the background use this command to bring up the server console.  To exit the console without stopping the server hold CTRL and type A D.<br>
 
