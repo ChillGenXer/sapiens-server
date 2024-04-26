@@ -1,5 +1,5 @@
 # sapiens-server
-Some helpful scripts for running a Sapiens dedicated server on Linux.
+Some helpful scripts for running a Sapiens dedicated server on Linux.<br>
 **Current Sapiens Version: 0.5.0.37**
 
 This package assumes you have an Ubuntu 23.10 installation ready and a user that the server will run under setup which has sudo access.  
