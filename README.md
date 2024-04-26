@@ -39,7 +39,7 @@ If you've done everything correctly up to this point, you should see the server 
 
 Ok now let's edit our servers config.  We will find that here:
 
-**``cd ~/.local/share/majicjungle/sapiens``**
+**``cd ~/.local/share/majicjungle/sapiens``**<br>
 **``nano serverConfig.lua``**
 
 There are various options that can be changed in here, the two main ones for this are "serverName" (this is seperate from your World name) and "advertise".  If you advertise your server will show up in the Multiplayer select screen in Sapiens for other people to connect.
