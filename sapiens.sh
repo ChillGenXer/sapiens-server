@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source config.sh
+cd ~/sapiens-server
 
 check_screen() {
     # Check if a screen session with the specified name exists
