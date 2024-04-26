@@ -9,7 +9,7 @@ First thing is to clone these helper files to your server.  Log into Ubuntu with
 
 ``git clone https://github.com/ChillGenXer/sapiens-server.git``
 
-Now navigate to the new directory:
+Now navigate to the new directory:<br>
 
 ``cd sapiens-server``
 
