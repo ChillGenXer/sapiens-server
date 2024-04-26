@@ -7,7 +7,7 @@ GAME_DIR="/home/YOUR_USERNAME/.local/share/Steam/steamcmd/sapiens"
 WORLD_DIR="/home/YOUR_USERNAME/.local/share/majicjungle/sapiens/players/PLAYER_NUMBER_FOLDER_NAME/worlds/WORLD_NUMBER_FOLDER_NAME"
 
 # The folder where the backup command will send your world archive.  This folder was created with the git package, just change as necessary. 
-BACKUP_DIR="~/sapiens-server/world_backups"
+BACKUP_DIR="/home/YOUR_USERNAME/sapiens-server/world_backups"
 
 # World Name.  This is the name used in the game that shows up on the map as well as the server listing.
 WORLD_NAME="My New World"
