@@ -28,6 +28,7 @@ ln -s ../steam/steamcmd/linux64/steamclient.so steamclient.so
 
 # Check if config.sh exists, if not, create it
 cd ~/sapiens-server
+CONFIG_FILE="config.sh"
 if [ ! -f "$CONFIG_FILE" ]; then
     cat <<EOF >"$CONFIG_FILE"
 #!/bin/bash
