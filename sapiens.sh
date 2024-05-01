@@ -1,7 +1,10 @@
 #!/bin/bash
 
-source config.sh
+# Author: ChillGenXer (chillgenxer@gmail.com)
+# Description: A set of commands for managing a running Sapiens dedicated server on Linux.
+
 cd ~/sapiens-server
+source config.sh
 
 check_screen() {
     # Check if a screen session with the specified name exists
@@ -30,10 +33,13 @@ start_server() {
     fi
 }
 
+#Function to kill all running Sapiens Dedicated Server processes and backup the log files.
 stop_server() {
-    screen -S $SCREEN_NAME -p 0 -X stuff "stop^M"
+    killall linuxServer
+    #TODO Log backup
 }
 
+# Function to backup the world folder to the specified backup directory.
 backup_server() {
     TIMESTAMP=$(date +%Y%m%d%H%M%S)
     BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
