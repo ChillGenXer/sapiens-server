@@ -1,12 +1,22 @@
 # sapiens-server
 Some helpful scripts for running a Sapiens dedicated server on Linux.<br>
-**Current Sapiens Version: 0.5.0.37**
+**Current Sapiens Version: 0.5.0.42**
 
-This package assumes you have an Ubuntu 23.10 installation ready and a user that the server will run under setup which has sudo access.  
+This package assumes you have an Ubuntu 23.10 installation ready and a user that the server will run under setup which has sudo access.  Please ensure you create a new user that will be used for the server to run on, **these instructions will not work if installed under the root user!**  To set up a new user (this is the user created for the video tutorial):
+
+**``sudo adduser sapserver``**
+
+or if you are creating the user as the root user:
+**``adduser sapserver``**
+
+Set a password for the new user.  Now, add the user to the sudo group (without the first ``sudo`` if you are installing as the ``root`` user:
+**``sudo usermod -aG sudo sapserver``**
+
+This is the user ID that you will run the server under.
 
 ## Installation
 
-First thing is to clone these helper files to your server.  Log into Ubuntu with the username you will be using for the server and type:
+First thing is to clone these helper files to your server.  Log into Ubuntu **with the username you created for the server previously** and type:
 
 **``git clone https://github.com/ChillGenXer/sapiens-server.git``**
 
