@@ -3,8 +3,14 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: A set of commands for managing a running Sapiens dedicated server on Linux.
 
-cd ~/sapiens-server
-source config.sh
+cd $HOME/sapiens-server
+# Import your configuration
+if [ ! -f "config.sh" ]; then
+  echo "Error: config.sh file not found.  Please ensure you run 'install.sh' first."
+  exit 1
+else
+  source config.sh
+fi
 
 check_screen() {
     # Check if a screen session with the specified name exists
@@ -30,12 +36,15 @@ start_server() {
         esac
     else
         screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
+        echo "Sapiens world '$WORLD_NAME' started and running in the background."
     fi
 }
 
 #Function to kill all running Sapiens Dedicated Server processes and backup the log files.
 stop_server() {
     killall linuxServer
+    echo "Sapiens world '$WORLD_NAME' has been stopped."
+    #screen -S $SCREEN_NAME -p 0 -X stuff "stop^M"
     #TODO Log backup
 }
 
@@ -43,14 +52,10 @@ stop_server() {
 backup_server() {
     TIMESTAMP=$(date +%Y%m%d%H%M%S)
     BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
-    # Get the parent directory of the world folder
-    PARENT_DIR=$(dirname "$WORLD_DIR")
-    # Get the name of the world folder (the last part of the WORLD_DIR path)
-    WORLD_FOLDER_NAME=$(basename "$WORLD_DIR")
-    # Navigate to the parent directory
-    cd "$PARENT_DIR"
+    cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
     # Archive the specific world directory, including its name in the archive
-    tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_FOLDER_NAME"
+    tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
+    cd $HOME/sapiens-server
 }
 
 upgrade_server() {

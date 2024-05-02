@@ -1,12 +1,22 @@
 # sapiens-server
 Some helpful scripts for running a Sapiens dedicated server on Linux.<br>
-**Current Sapiens Version: 0.5.0.37**
+**Last tested Sapiens Dedicated Server Version: 0.5.0.42**
 
-This package assumes you have an Ubuntu 23.10 installation ready and a user that the server will run under setup which has sudo access.  
+This package assumes you have an Ubuntu 23.10 installation ready and a user that the server will run under setup which has sudo access.  Please ensure you create a new user that will be used for the server to run on, **the install script will not run if installed as the root user!**  To set up a new user:
+
+**``sudo adduser sapserver``**
+
+or if you are creating the user as the root user:
+**``adduser sapserver``**
+
+Set a password for the new user.  Now, add the user to the sudo group (without the first ``sudo`` if you are installing as the ``root`` user:
+**``sudo usermod -aG sudo sapserver``**
+
+In this example "sapserver" is the user ID you will log into and run the server with.
 
 ## Installation
 
-First thing is to clone these helper files to your server.  Log into Ubuntu with the username you will be using for the server and type:
+First thing is to clone these helper files to your server.  This set of scripts currently expects to run in the user home folder in a directory called "sapiens-server".  Log into Ubuntu with the username you will be using for the server.  From the home folder type:
 
 **``git clone https://github.com/ChillGenXer/sapiens-server.git``**
 
@@ -22,36 +32,16 @@ Now run it:
 
 **``./install.sh``**
 
-Answer any of the prompts affirmatively.
-
-Once this is completed you should now have the sapiens server installed in your home .local directory. Navigate there:
-
-**``cd ~/.local/share/Steam/steamcmd/sapiens``**
-
-Now we will start it for the first time and set up the actual world folders.  Before we do that you can run the help command at this point to see what options are available:
-
-**``./linuxServer --help``**
-
-So you can see you have options to load a world, change ports, a few other things.  For now we are going to simply start the server and create our world using the ``new`` command.  You can change the name in quotes to what you like, but remember it exactly - we are going to need it later.
-
-**``./linuxServer --new "My New World"``**
-
-If you've done everything correctly up to this point, you should see the server start up.  You can type in "stop" and enter at this point because we have a little more setup to do to make things a bit more convenient, but you do need to run it once for all the directories to get created.
-
-Ok now let's edit our servers config.  We will find that here:
+Once the script has completed, let's edit our servers config.  We will find that here:
 
 **``cd ~/.local/share/majicjungle/sapiens``**<br>
 **``nano serverConfig.lua``**
 
-There are various options that can be changed in here, the two main ones for this are "serverName" (this is seperate from your World name) and "advertise".  If you advertise your server will show up in the Multiplayer select screen in Sapiens for other people to connect.
+There are various options that can be changed in here, the two main ones for this are "serverName" (this is seperate from your World name) and "advertise".  If you set ``advertise=true`` your server will show up in the Multiplayer select screen in Sapiens for other people to connect.  **Please note** the install script is asking for these values but not currently writing them.  This will come soon.  Manually edit them here for now.
 
 Ok once you have changed the serverConfig.lua to your needs, save it and close nano. Let's go back to the helper scripts folder:
 
 **``cd ~/sapiens-server``**
-
-We are now going to update our config.sh file to put in the relevant directories and stuff so we never have to deal with them again.  The instructions in the file should hopefully be sufficent to be able to set it correctly.
-
-**``nano config.sh``**
 
 Your server is now ready to run.  From now on, when you log in you can change to the sapiens-server directory and you can use the command script:
 
