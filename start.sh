@@ -5,17 +5,13 @@
 # bulletproof but it works pretty good.
 
 # Import your configuration
-if [ ! -f "config.sh" ]; then
-  echo "Error: config.sh file not found.  Please ensure you run 'install.sh' first."
-  exit 1
-else
-  source config.sh
-fi
+source config.sh
 
 while true; do
     # Start the server with the world name passed when starting the script.  If you need to modify
     # any of the server arguments you can do it here.
-    $GAME_DIR/linuxServer --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
+    cd $GAME_DIR
+    ./linuxServer --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
     status=$?
 
     # Check the exit status of the command.  If it's non zero we will assume it crashed

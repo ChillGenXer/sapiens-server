@@ -36,7 +36,7 @@ start_server() {
         esac
     else
         screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
-        echo "Sapiens world '$WORLD_NAME' started and running in the background. use './sapiens.sh console' to enter the console, exit with CTRL + A + D."
+        echo "Sapiens world '$WORLD_NAME' started and running in the background."
     fi
 }
 
@@ -52,10 +52,10 @@ stop_server() {
 backup_server() {
     TIMESTAMP=$(date +%Y%m%d%H%M%S)
     BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
+    # Navigate to the parent directory
     cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
     # Archive the specific world directory, including its name in the archive
     tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
-    cd $HOME/sapiens-server
 }
 
 upgrade_server() {

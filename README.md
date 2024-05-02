@@ -1,8 +1,8 @@
 # sapiens-server
-Some helpful scripts for running a Sapiens dedicated server on Linux.<br>
+Installation and management scripts for the Sapiens Dedicated Server on Ubuntu (Linux).<br>
 **Last tested Sapiens Dedicated Server Version: 0.5.0.42**
 
-This package assumes you have an Ubuntu 23.10 installation ready and a user that the server will run under setup which has sudo access.  Please ensure you create a new user that will be used for the server to run on, **the install script will not run if installed as the root user!**  To set up a new user:
+This package assumes you have an **Ubuntu 23.10 or greater** installation ready and a user that the server will run under, and is setup with ``sudo`` access.  Please ensure you create a new user that will be used for the server to run on, **the install script will not run if installed as the root user!**  To set up a new user:
 
 **``sudo adduser sapserver``**
 
@@ -16,9 +16,11 @@ In this example "sapserver" is the user ID you will log into and run the server 
 
 ## Installation
 
-First thing is to clone these helper files to your server.  This set of scripts currently expects to run in the user home folder in a directory called "sapiens-server".  Log into Ubuntu with the username you will be using for the server.  From the home folder type:
+First thing is to clone these helper files to your server.  This set of scripts currently expects to run in the user home folder in a directory called "sapiens-server".  Log into Ubuntu with the username you will be using for the server.  From the **home folder** type:
 
 **``git clone https://github.com/ChillGenXer/sapiens-server.git``**
+
+Please note these scripts expect to run in a folder called "sapiens-server" in the home directory.  It will not work correctly if installed in another location.  As a best practice this user account should only be used for the sapiens server.  It will run in the background and you will be able to log out and not have to keep the console open.
 
 Now navigate to the new directory:<br>
 
@@ -37,13 +39,15 @@ Once the script has completed, let's edit our servers config.  We will find that
 **``cd ~/.local/share/majicjungle/sapiens``**<br>
 **``nano serverConfig.lua``**
 
-There are various options that can be changed in here, the two main ones for this are "serverName" (this is seperate from your World name) and "advertise".  If you set ``advertise=true`` your server will show up in the Multiplayer select screen in Sapiens for other people to connect.  **Please note** the install script is asking for these values but not currently writing them.  This will come soon.  Manually edit them here for now.
+There are various options that can be changed in here, the two main ones for this are "serverName" (this is seperate from your World name) and "advertise".  If you set ``advertise=true`` your server will show up in the Multiplayer select screen in Sapiens for other people to connect.  
+
+**Please note** the install script is asking for these values but not currently writing them.  This will come soon.  Manually edit them with the instructions above for now.
 
 Ok once you have changed the serverConfig.lua to your needs, save it and close nano. Let's go back to the helper scripts folder:
 
 **``cd ~/sapiens-server``**
 
-Your server is now ready to run.  From now on, when you log in you can change to the sapiens-server directory and you can use the command script:
+Your server is now ready to run!  From now on, when you log in you can change to the sapiens-server directory and you can use the sapiens.sh script:
 
 ## Commands
 
@@ -53,4 +57,3 @@ Your server is now ready to run.  From now on, when you log in you can change to
 **./sapiens.sh upgrade** - This will run the Steam upgrade script and either update or refresh the Sapiens server executable.<br>
 **./sapiens.sh backup** - Backs up the world to the designated backup folder.<br>
 **./sapiens.sh console** - When a server is running in the background use this command to bring up the server console.  To exit the console without stopping the server hold CTRL and type A D.<br>
-
