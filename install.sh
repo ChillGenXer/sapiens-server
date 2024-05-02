@@ -40,6 +40,7 @@ if select_world; then
     # There was an existing world that will be used.  Generate the config file and exit.
     get_network_ports   # Ask the user for the ports
     create_config       # Create the configuration file
+    set_permissions     # Set permissions for the scripts
     install_summary     # Summarize the new server
     exit 0
 fi
