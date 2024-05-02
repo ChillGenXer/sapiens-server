@@ -36,7 +36,7 @@ start_server() {
         esac
     else
         screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
-        echo "Sapiens world '$WORLD_NAME' started and running in the background."
+        echo "Sapiens world '$WORLD_NAME' started and running in the background. use './sapiens.sh console' to enter the console, exit with CTRL + A + D."
     fi
 }
 
