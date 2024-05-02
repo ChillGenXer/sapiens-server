@@ -15,7 +15,7 @@ fi
 while true; do
     # Start the server with the world name passed when starting the script.  If you need to modify
     # any of the server arguments you can do it here.
-    $GAME_DIR/linuxServer --server_id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
+    $GAME_DIR/linuxServer --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
     status=$?
 
     # Check the exit status of the command.  If it's non zero we will assume it crashed
