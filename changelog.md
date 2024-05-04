@@ -5,3 +5,4 @@
 - Added ability to configure server advertising
 - Updated all scripts to use ``#!/usr/bin/env bash`` to make them a little more portable.
 - Tightened up the error checking a bit in start.sh
+- Added server autorestart functionality, ./sapiens.sh autorestart [minutes].

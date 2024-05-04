@@ -38,7 +38,7 @@ start_server() {
         esac
     else
         screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
-        echo "Sapiens world '$WORLD_NAME' started and running in the background."
+        echo "Sapiens world '$WORLD_NAME' started in the background. View the console with ./sapiens.sh console."
     fi
 }
 
@@ -46,9 +46,9 @@ start_server() {
 stop_server() {
     if pgrep -x "linuxServer" > /dev/null; then
         killall linuxServer
-        echo "Sapiens world '$WORLD_NAME' has been stopped."
+        echo "'$WORLD_NAME' has been stopped.  If you intend to keep it stopped, please ensure you run ./sapiens autorestart 0 to disable any autorestarts."
     else
-        echo "Sapiens world '$WORLD_NAME' was already stopped."
+        echo "'$WORLD_NAME' was already stopped."
     fi
 }
 
@@ -73,6 +73,23 @@ open_console() {
     screen -r $SCREEN_NAME
 }
 
+# Set a cronjob to restart the Sapiens server.
+auto_restart() {
+    if [[ "$1" == "0" ]]; then
+        # Remove the existing cron job if the interval is set to 0
+        (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart") | crontab -
+        echo "Auto-restart has been disabled."
+    elif [[ "$1" =~ ^[0-9]+$ ]]; then
+        INTERVAL="$1"
+        CRON_JOB="*/$INTERVAL * * * * $SCRIPT_DIR/sapiens.sh restart"
+        (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart"; echo "$CRON_JOB") | crontab -
+        echo "$WORLD_NAME will restart every $INTERVAL minutes."
+    else
+        echo "Error: Interval must be a number"
+        exit 1
+    fi
+}
+
 case $1 in
     start)
         start_server
@@ -85,6 +102,9 @@ case $1 in
         sleep 5  # wait for the server to shut down gracefully
         start_server
         ;;
+    autorestart)
+        auto_restart "$2"
+        ;;
     backup)
         backup_server
         ;;
@@ -95,7 +115,18 @@ case $1 in
         open_console
         ;;    
     *)
-        echo "Usage: $0 {start|stop|restart|backup|upgrade|console}"
+        echo "Sapiens Server Manager"
+        echo "chillgenxer@chillgenxer.com"
+        echo ""
+        echo "Usage examples:"
+        echo "./sapiens.sh start - starts your world in the background."
+        echo "./sapiens.sh console - Bring the running world's console. To exit without stopping the server hold CTRL and type A D."        
+        echo "./sapiens.sh stop - stops your world."
+        echo "./sapiens.sh restart - Manually restart the server. Good to use if things are getting laggy."
+        echo "./sapiens.sh autorestart [minutes] - Automatically restart the world at the specified interval."
+        echo "./sapiens.sh upgrade - This will update you to the latest version of the Sapiens server."
+        echo "./sapiens.sh backup - Stops the world and backs it up to the backup folder."
+
         exit 1
         ;;
 esac

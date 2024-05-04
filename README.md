@@ -51,9 +51,10 @@ Your server is now ready to run!  From now on, when you log in you can change to
 
 ## Commands
 
-**./sapiens.sh start** - starts your server in a screen session so it is running in the background.<br>
-**./sapiens.sh stop** - stops your server running in the background.<br>
-**./sapiens.sh restart** - Basically a stop, wait, and then a start.  Good to bounce the server if things are getting laggy.<br>
-**./sapiens.sh upgrade** - This will run the Steam upgrade script and either update or refresh the Sapiens server executable.<br>
-**./sapiens.sh backup** - Backs up the world to the designated backup folder.<br>
-**./sapiens.sh console** - When a server is running in the background use this command to bring up the server console.  To exit the console without stopping the server hold CTRL and type A D.<br>
+./sapiens.sh **start** - starts your world in the background.
+./sapiens.sh **console** - Bring the running world's console. To exit without stopping the server hold CTRL and type A D.       
+./sapiens.sh **stop** - stops your world.
+./sapiens.sh **restart** - Basically a stop, wait, and then a start. Good to use if things are getting laggy.
+./sapiens.sh **upgrade** - This will update you to the latest version of the Sapiens server."
+./sapiens.sh **backup** - Stops the world and backs it up to the backup folder."
+./sapiens.sh **autorestart [minutes]** - Automatically restart the world at the specified interval.  Set to 0 to disable.
