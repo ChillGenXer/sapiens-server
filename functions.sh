@@ -1,17 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Script file to externalize a few of the functions.
 
 # This function checks to make sure that the user is not using "root" to install the server.
 check_for_root() {
     if [ "$EUID" -eq 0 ]; then
-        echo "The Sapiens Server should not be run as the root user. Please create a new user to run the server that has sudo access."
+        echo "The Sapiens dedicated server should not be run as the root user. Please create a new user to run the server that has sudo access."
         echo "The user 'sapserver' is used in the instructions, you can create it like this logged in as root (as you are now):"
         echo ""
         echo "  adduser sapserver"
         echo "  usermod -aG sudo sapserver"
         echo ""
         echo "Once this user has been created log in as that user, get this project and run this script again."
+        echo ""
+        echo "git clone https://github.com/ChillGenXer/sapiens-server.git"
         exit 1
     fi
 }
@@ -40,7 +42,6 @@ select_world() {
     done
 
     if [ "$world_found" = true ]; then
-        echo ""
         echo "Existing worlds found. If you would like to use an existing world, select its number."
         echo "Otherwise to create a new world select '0'."
         echo ""
@@ -60,11 +61,11 @@ select_world() {
                         ((counter++))
                     fi
                 done
+                echo ""
             fi
         done
 
         while true; do
-            echo ""
             echo "Enter the number corresponding to the world you want, or '0' to create a new one:"
             read selection
 
@@ -85,19 +86,35 @@ select_world() {
     fi
 }
 
+# Function to center text based on terminal width
+print_centered() {
+    local input="$1"
+    printf "%*s\n" $(( (${#input} + $(tput cols)) / 2 )) "$input"
+}
+
 # Welcome screen
 splash_text() {
-    echo "Sapiens Dedicated Server Linux Install Script"
-    echo "Author: ChillGenXer (chillgenxer@gmail.com)"
-    echo "Version: $VERSION"
-    echo "-------------------------------------------------------------------------------------------------------------"
-    echo "You are about to install the Sapiens Dedicated Server.  The Sapiens Server requires GLIBC_2.38 or higher."
-    echo "This script has been tested on Ubuntu 23.10 (22.04 will not work), higher versions should work as well."
-    echo "Other Linux distributions with the correct GLIBC version should work but have not been tested."
+    local width=$(tput cols)  # Get the current width of the terminal
+    local line=$(printf '%*s' "$width" | tr ' ' '-')  # Create a separator line of the appropriate length
+
+    local title="Sapiens Linux Dedicated Server Install Script"
+    local author="Author: ChillGenXer (chillgenxer@gmail.com)"
+    local version="Version: $VERSION"
+    local tested="This script has been tested on Ubuntu 23.10 (22.04 will not work), higher versions should work as well."
+    local glibc_info="The Sapiens Server requires GLIBC_2.38 or higher. Other Linux distributions with the correct GLIBC version should work but have not been tested."
+    local note="Please note this installation script supports 1 server running 1 world, which should be fine for most people. If you require something more complicated, a manual install is probably the best route."
+
+    clear
+    echo "$line"
+    printf "%*s\n" $(( (width + ${#title}) / 2 )) "$title"
+    printf "%*s\n" $(( (width + ${#author}) / 2 )) "$author"
+    printf "%*s\n" $(( (width + ${#version}) / 2 )) "$version"
+    echo "$line"
+    echo "$tested" | fmt -w "$width"
+    echo "$glibc_info" | fmt -w "$width"
     echo ""
-    echo "Please note this installation script supports 1 server running 1 world, which should be fine for the majority."
-    echo "If you require something more complicated, a manual install is probably the best route."
-    echo "-------------------------------------------------------------------------------------------------------------"
+    echo "$note" | fmt -w "$width"
+    echo "$line"
     echo ""
 }
 
@@ -132,25 +149,41 @@ read_port() {
     echo "${input:-$default_port}"
 }
 
-# Function to decide on advertising the server
-get_new_server_details() {
+# Add the script directory to the path
+add_to_path(){
+    # Check if the directory is already in the PATH
+    if [[ ":$PATH:" != *":$SCRIPT_DIR:"* ]]; then
+        # Adding the directory to PATH in .bashrc
+        echo "export PATH=\$PATH:$SCRIPT_DIR" >> $HOME/.bashrc
+        echo "$SCRIPT_DIR added to your PATH."
+    else
+        echo "$SCRIPT_DIR is already in your PATH."
+    fi
 
-    echo "If you choose to advertise your server, in the multiplayer server tab it will look like this:"
+    # Source the .bashrc to update the PATH in the current session
+    source $HOME/.bashrc
+}
+
+# Get the details for the world that will be controlled by the scripts.
+get_new_server_details() {
+    read -p "World Name [Nameless Sapiens World]): " WORLD_NAME
+    if [ -z "$WORLD_NAME" ]; then
+        WORLD_NAME="Nameless Sapiens World"
+    fi
+}
+
+# Get the details for advertising the server on the network.
+get_multiplayer_details(){
+    echo "----------------------------------------------------------------------------------------------"
+    echo " If you choose to advertise your server, in the multiplayer server tab it will look like this:"
     echo ""
     echo "      My Server Name - My World Name"
     echo ""
-    echo "The World Name is also shown in-game when you bring up the map.  This is what people will know it by the most."
-    echo "Even if you don't intend to advertise your server as public, these need to be set."
-    echo ""
+    echo "----------------------------------------------------------------------------------------------"
     read -p "Server Name [My Server]): " SERVER_NAME
-    read -p "World Name [Nameless Sapiens World]): " WORLD_NAME
-
     # Check if we need a default value set.
     if [ -z "$SERVER_NAME" ]; then
         SERVER_NAME="My Server"
-    fi
-    if [ -z "$WORLD_NAME" ]; then
-        WORLD_NAME="Nameless Sapiens World"
     fi
 
     if ask_yes_no "Advertise Server to the public in-game?"; then
@@ -182,7 +215,30 @@ get_network_ports(){
     done
 }
 
-# Install the required dependencies.  This should be idempotent, I think.
+#Checks to see if the required software is installed.
+set_dependency_status() {
+    local dependencies=(screen psmisc steamcmd jq)
+    local steamcmd_dir="$HOME/.local/share/Steam/steamcmd" # Base directory for SteamCMD
+    local executable_name="linuxServer" # Executable to check for
+
+    DEPENDENCIES_INSTALLED="true"
+    SAPIENS_INSTALLED="false" # Default to false until found
+
+    # Check for package dependencies
+    for pkg in "${dependencies[@]}"; do
+        if ! dpkg -s "$pkg" &> /dev/null; then
+            DEPENDENCIES_INSTALLED="false"
+            break # Exit the loop as soon as one missing dependency is found
+        fi
+    done
+
+    # Check if the Sapiens executable exists anywhere within the steamcmd directory
+    if find "$steamcmd_dir" -type f -name "$executable_name" | grep -q .; then
+        SAPIENS_INSTALLED="true"
+    fi
+}
+
+# Install the required dependencies.
 install_dependencies(){
     # Dependency List:
     # -----------------------------------------------------------------------------------
@@ -190,28 +246,25 @@ install_dependencies(){
     # psmisc - killall command.
     # steamcmd - Steam commandline tool for installing the Sapiens server.
     # jq - Allows reading json files.
+    # procps - process grep
 
     echo ""
     echo "Installing dependencies..."
     echo ""
 
-    # Add the multiverse repository
+    # Add the Steam repository and prep for install
     sudo add-apt-repository multiverse
-
-    # Add i386 architecture
     sudo dpkg --add-architecture i386
-
-    # Update package lists
     sudo apt update
 
     # Install Steamcmd and other dependencies
-    sudo apt install screen psmisc steamcmd jq
-
+    sudo apt install screen psmisc procps steamcmd jq
 }
 
-# Despite the name, this can be used for a fresh install as well.  Uses a steamcmd config file where the sapiens appID is set.
+# Despite the name, this can be used for a fresh install as well.
+# Uses a steamcmd config file where the sapiens appID is set.
 upgrade_sapiens(){
-    echo "Running steamcmd and installing Sapiens Dedicated Server...\n\n"
+    echo "Running steamcmd and installing Sapiens Dedicated Server..."
     # Run steamcmd with preconfigured Sapiens Server update script
     steamcmd +runscript ~/sapiens-server/steamupdate.txt
 }
@@ -236,7 +289,7 @@ patch_steam(){
     fi
 }
 
-# Create a sapiens world.
+# Create a new world on the server.
 create_world(){
     # Get the PID of the background process and wait.
     $HOME/.local/share/Steam/steamcmd/sapiens/linuxServer --server-id "$SERVER_ID" --new "$WORLD_NAME" >/dev/null 2>&1 &
@@ -288,28 +341,34 @@ create_world(){
 
 # Final summary of what was done.
 install_summary(){
-    echo ""
-    echo "Sapiens Dedicated Server Installation complete!"
-    echo ""
-    # Output the selected ports
-    echo ""
-    echo "Configured Ports:"
-    echo "----------------------------------------"
-    echo "UDP Port: $UDP_PORT"
-    echo "HTTP Port: $HTTP_PORT"
-    echo "Steam Port (UDP Port + 1): $STEAM_PORT"
-
+    #Get IP Address
     IP_ADDRESS=$(ip addr show $(ip route show default | awk '/default/ {print $5}') | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}')
+
+    echo "---------------------------------------------------------------------"
+    echo "          Sapiens Dedicated Server Installation complete!"
     echo ""
+    echo "Summary:"
+    echo ""
+    echo "Server Name: $SERVER_NAME"
+    echo "World Name: $WORLD_NAME"
+    echo "Local IP Address: $IP_ADDRESS"
+    echo "UDP Port: $UDP_PORT"
+    echo "Steam Port (UDP Port + 1): $STEAM_PORT"    
+    echo "HTTP Port: $HTTP_PORT"
+    echo "Server Publicly Advertised: $ADVERTISE"
+    echo "Multiplayer Server Entry: $SERVER_NAME - $WORLD_NAME"
+    echo "---------------------------------------------------------------------"
     echo "If you intend to expose the server outside your network please ensure"
-    echo "you forward these ports on your router to this machine (IP Address $IP_ADDRESS)"
+    echo "you forward these ports on your router to this machine (IP Address $IP_ADDRESS)."
     echo ""
-    echo "type './sapiens.sh' to see the list of commands."
+    echo "You can now control this world with the './sapiens.sh' command. Type"
+    echo "it to see options."
 }
 
+# Sets permissions so the management scripts can run.
 set_permissions(){
     # Make necessary scripts executable
-    chmod +x sapiens.sh start.sh
+    chmod +x sapiens.sh start.sh backuplogs.sh
 }
 
 create_config() {
@@ -319,33 +378,43 @@ create_config() {
 
     # Create a new config file
     cat <<EOF >"$CONFIG_FILE"
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Variables set up during installation.  This file is regenerated by the install script so you shouldn't change values in here.
-SERVER_NAME="$SERVER_NAME"
-WORLD_NAME="$WORLD_NAME"
-SERVER_ID="$SERVER_ID"
-WORLD_ID="$WORLD_ID"
+#---------------------------------------------------------------------------------------------
+# WARNING! This file is regenerated by the install script to support the other scripts
+# so you shouldn't change the values in here. Please run ./install.sh if you want to 
+# change these values, select your existing world when found and fill in the values to change.
+#---------------------------------------------------------------------------------------------
+
+# Variables set up during installation.  
+SCRIPT_DIR="$SCRIPT_DIR"        # Base dir where the scripts are located.
+WORLD_NAME="$WORLD_NAME"        # The name of the world that people will see in-game
+SERVER_ID="$SERVER_ID"          # The server dir name in the "players" dir
+WORLD_ID="$WORLD_ID"            # The unique world id that was generated
+SCREEN_NAME="sapiens-server"    # Screen name for the server session.
 
 # Network settings.  If exposing to the internet you will need to port forward all of these on your router.
 UDP_PORT="$UDP_PORT"
 #STEAM_PORT="$STEAM_PORT" - Not configurable, listed for reference.  If you change the UDP_PORT this will be UDP_PORT + 1
 HTTP_PORT="$HTTP_PORT"
+ADVERTISE=$ADVERTISE
+SERVER_NAME="$SERVER_NAME"      # Name of the server, as shown in Multiplayer Tab
 
-# Location of the server executable
-GAME_DIR="$HOME/.local/share/Steam/steamcmd/sapiens"
+# Server locations
+GAME_DIR="$HOME/.local/share/Steam/steamcmd/sapiens"        # Where Steam installs the linuxServer executable
+SAPIENS_DIR="$HOME/.local/share/majicjungle/sapiens"        # Location where linuxServer stores data
+BACKUP_DIR="$HOME/sapiens-server/world_backups"             # Folder where the backup command will send your world archive
 
-# Location where Sapiens stores data
-SAPIENS_DIR="$HOME/.local/share/majicjungle/sapiens"
+# World Locations
+WORLD_DIR="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID"
+WORLD_CONFIG_LUA="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/config.lua"
+WORLD_INFO="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/info.json"
 
-# Folder where the backup command will send your world archive
-BACKUP_DIR="$HOME/sapiens-server/world_backups"
-
-# Folder where the logs will be archived when you stop the server.
-LOG_BACKUP_DIR="$HOME/sapiens-server/log_backups"
-
-# Screen name for the server session.  Best to leave this as is.
-SCREEN_NAME="sapiens-server"
+# Logging
+LOG_BACKUP_DIR="$HOME/sapiens-server/log_backups"           # Folder where the logs will be archived.
+ENET_LOG="$SAPIENS_DIR/enetServerLog.log"
+SERVERLOG_LOG="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/logs/serverLog.log"
+WORLD_LOGS_DIR="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/logs"
 EOF
 }
 

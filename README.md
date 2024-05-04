@@ -1,6 +1,6 @@
 # sapiens-server
 Installation and management scripts for the Sapiens Dedicated Server on Ubuntu (Linux).<br>
-**Last tested Sapiens Dedicated Server Version: 0.5.0.42**
+**Last tested Sapiens Dedicated Server Version: 0.5.0.44**
 
 This package assumes you have an **Ubuntu 23.10 or greater** installation ready and a user that the server will run under, and is setup with ``sudo`` access.  Please ensure you create a new user that will be used for the server to run on, **the install script will not run if installed as the root user!**  To set up a new user:
 

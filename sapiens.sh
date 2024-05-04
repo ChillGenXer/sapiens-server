@@ -1,22 +1,24 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: A set of commands for managing a running Sapiens dedicated server on Linux.
 
-cd $HOME/sapiens-server
-# Import your configuration
+# Import the configuration
 if [ ! -f "config.sh" ]; then
   echo "Error: config.sh file not found.  Please ensure you run 'install.sh' first."
   exit 1
 else
   source config.sh
+  cd $SCRIPT_DIR
 fi
 
+# Checks to see if there is an active screen session, implying the server is up
 check_screen() {
     # Check if a screen session with the specified name exists
     screen -ls | grep -q "$SCREEN_NAME"
 }
 
+# Starts the dedicated server in a screen session
 start_server() {
     check_screen
     if [ $? -eq 0 ]; then
@@ -42,14 +44,17 @@ start_server() {
 
 #Function to kill all running Sapiens Dedicated Server processes and backup the log files.
 stop_server() {
-    killall linuxServer
-    echo "Sapiens world '$WORLD_NAME' has been stopped."
-    #screen -S $SCREEN_NAME -p 0 -X stuff "stop^M"
-    #TODO Log backup
+    if pgrep -x "linuxServer" > /dev/null; then
+        killall linuxServer
+        echo "Sapiens world '$WORLD_NAME' has been stopped."
+    else
+        echo "Sapiens world '$WORLD_NAME' was already stopped."
+    fi
 }
 
 # Function to backup the world folder to the specified backup directory.
 backup_server() {
+    echo "Backing up the world '$WORLD_NAME'..."
     TIMESTAMP=$(date +%Y%m%d%H%M%S)
     BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
     # Navigate to the parent directory
@@ -58,10 +63,12 @@ backup_server() {
     tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
 }
 
+# Use steamcmd to upgrade the Sapiens Dedicated Server
 upgrade_server() {
     steamcmd +runscript ~/sapiens-server/steamupdate.txt
 }
 
+# Open the screen session to see the server console
 open_console() {
     screen -r $SCREEN_NAME
 }
