@@ -222,14 +222,12 @@ get_dependency_status() {
         if ! dpkg -s "$pkg" &> /dev/null; then
             echo "DEBUG: Return with error if a dependency is not installed"
             return 1 # Return with error if a dependency is not installed
-        else
-            # Check if the Sapiens executable exists anywhere within the steamcmd directory, silently
-            if find "$steamcmd_dir" -type f -name "$executable_name" 2>/dev/null | grep -q . 2>/dev/null; then
-                SAPIENS_INSTALLED="true"
-            fi
-            return 0 # All dependencies are installed
         fi
     done
+    #Check for sapiens. I don't think this is needed
+    if find "$steamcmd_dir" -type f -name "$executable_name" 2>/dev/null | grep -q . 2>/dev/null; then
+        SAPIENS_INSTALLED="true"
+    fi 
 }
 
 # Install the required dependencies.
