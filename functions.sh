@@ -96,7 +96,7 @@ splash_text() {
     local version="Version: $VERSION"
     local tested="This script has been tested on Ubuntu 23.10 (22.04 will not work), higher versions should work as well."
     local glibc_info="The Sapiens Server requires GLIBC_2.38 or higher. Other Linux distributions with the correct GLIBC version should work but have not been tested."
-    local note="Please note this installation script supports 1 server running 1 world, which should be fine for most people. If you require something more complicated, a manual install is probably the best route."
+    local note="Please note this installation script supports 1 server running 1 world, which should be fine for most people. Running multiple servers is planned for a future version."
 
     clear
     echo "$line"
