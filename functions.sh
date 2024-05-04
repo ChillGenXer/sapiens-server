@@ -220,7 +220,7 @@ get_dependency_status() {
     # Check for package dependencies
     for pkg in "${dependencies[@]}"; do
         if ! dpkg -s "$pkg" &> /dev/null; then
-            echo "DEBUG: Return with error if a dependency is not installed"
+            #echo "DEBUG: Return with error if a dependency is not installed"
             return 1 # Return with error if a dependency is not installed
         fi
     done
