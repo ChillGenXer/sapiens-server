@@ -37,7 +37,7 @@ splash_text
 check_for_root
 
 # Check if all required dependencies are installed
-echo "DEBUG: Calling get_dependency_status"
+# echo "DEBUG: Calling get_dependency_status"
 if ! get_dependency_status; then
     echo "Unable to detect required dependencies. Starting installation..."
     install_dependencies
