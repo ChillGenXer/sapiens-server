@@ -13,7 +13,6 @@ LOG_BACKUP_DIR="$HOME/sapiens-server/log_backups"       # Destination for log ba
 PLAYERS_DIR="$SAPIENS_DIR/players"                      # Where the server files specifically are.  A "player" dir is a server instance
 GAME_CONFIG="$SAPIENS_DIR/serverConfig.lua"             # Path to the serverConfig.lua fil #TODO - auto-update this.
 ENET_LOG="$SAPIENS_DIR/enetServerLog.log"               # enet Connection log.
-VERSION="0.4.0"                                         # Revision number of the script set
 SCREEN_NAME="sapiens-server"                            # Name to be set for the screen session.
 
 # User config Variables:
@@ -31,39 +30,69 @@ if ! source functions.sh; then
     exit 1
 fi
 
-# Check if the script is running as root
-check_for_root
-
 # Splash text to start the interaction with the user.
 splash_text
 
-# Check to see if there are existing worlds, and ask the user if they want to use one of them.
-if select_world; then
+# Check if the script is running as root
+check_for_root
 
-    # There was an existing world that will be used.  Generate the config file and exit.
-    get_multiplayer_details     # Check if they want to advertise the server
-    get_network_ports           # Ask the user for the ports
-    create_config               # Create the configuration file
-    set_permissions             # Set permissions for the scripts
-    install_summary             # Summarize the new server
-    exit 0
-
+# Check if all required dependencies are installed
+echo "DEBUG: Calling get_dependency_status"
+if ! get_dependency_status; then
+    echo "Unable to detect required dependencies. Starting installation..."
+    install_dependencies
+    patch_steam
 fi
 
-# Let's get the details to set up a new world.
-get_new_server_details
+# Do a refresh of the sapiens server regardless.
+echo "Refreshing and validating Sapiens Server version..."
+upgrade_sapiens
+
+if refresh_world_list; then
+    echo "---------------------------"
+    echo "Please selection an option:"
+    echo "---------------------------"
+    echo "1. Select an existing world"
+    echo "2. Create a new world"
+    echo "0. Exit"
+    read -p "Enter your choice (1 existing, 2 for new, 0 to Exit): " user_choice
+
+    case $user_choice in
+        1)
+            select_world
+            if [ $? -eq 0 ]; then
+                echo "World selected: $WORLD_NAME (ID: $WORLD_ID)"
+                # There was an existing world that will be used.
+
+            else
+                echo "Failed to select a world."
+                exit 1
+            fi
+            ;;
+        2)
+            # Placeholder for new world creation
+            get_new_server_details
+            create_world
+            ;;
+        0)
+            exit 0
+            ;;
+        *)
+            echo "Invalid choice. Please enter 1 or 2."
+            ;;
+    esac
+else
+    get_new_server_details
+    create_world
+fi
+
 get_multiplayer_details
 get_network_ports
-
-#Install dependencies and install/upgrade the Sapiens dedicated server
-install_dependencies
-upgrade_sapiens
-patch_steam
-
-# create the new world
-create_world
-
-# create the configuration file, set permissions and exit.
 create_config
 set_permissions
 install_summary
+
+# Ask if they want it started.
+if ask_yes_no "Start $WORLD_NAME now"; then
+    ./sapiens.sh start
+fi

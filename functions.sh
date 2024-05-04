@@ -2,6 +2,12 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Script file to externalize a few of the functions.
 
+#Inventory for our worlds.
+declare -a server_ids
+declare -a world_ids
+declare -a world_names
+declare -a display_lines
+
 # This function checks to make sure that the user is not using "root" to install the server.
 check_for_root() {
     if [ "$EUID" -eq 0 ]; then
@@ -18,72 +24,60 @@ check_for_root() {
     fi
 }
 
-# Function to perform world selection
-select_world() {
+# Function to refresh and check world list
+refresh_world_list() {
+    local server_dir world_dir
+    local counter=1
+    local world_found=false
 
-    declare -a server_ids
-    declare -a world_ids
-    declare -a world_names
-    declare -a display_lines
-
-    counter=1
-    world_found=false
-
-    # Search through each server directory to check for worlds
     for server_dir in "$PLAYERS_DIR"/*; do
         if [ -d "$server_dir/worlds" ]; then
             for world_dir in "$server_dir/worlds"/*; do
                 if [ -d "$world_dir" ] && [ -f "$world_dir/info.json" ]; then
                     world_found=true
-                    break 2  # Exit both loops if at least one world is found
+                    local server_id=$(basename "$server_dir")
+                    local world_id=$(basename "$world_dir")
+                    local world_name=$(jq -r '.value0.worldName' "$world_dir/info.json")
+
+                    server_ids[counter]=$server_id
+                    world_ids[counter]=$world_id
+                    world_names[counter]="$world_name"
+                    display_lines[counter]="    $counter. World Name: $world_name, World ID: $world_id"
+
+                    ((counter++))
                 fi
             done
         fi
     done
 
     if [ "$world_found" = true ]; then
-        echo "Existing worlds found. If you would like to use an existing world, select its number."
-        echo "Otherwise to create a new world select '0'."
-        echo ""
-        for server_dir in "$PLAYERS_DIR"/*; do
-            if [ -d "$server_dir/worlds" ]; then
-                server_id=$(basename "$server_dir")
-                echo "Server ID: $server_id"
-                for world_dir in "$server_dir/worlds"/*; do
-                    if [ -f "$world_dir/info.json" ]; then
-                        world_id=$(basename "$world_dir")
-                        world_name=$(jq -r '.value0.worldName' "$world_dir/info.json")
-                        server_ids[counter]=$server_id
-                        world_ids[counter]=$world_id
-                        world_names[counter]="$world_name"
-                        display_lines[counter]="    $counter. World Name: $world_name, World ID: $world_id"
-                        echo "${display_lines[counter]}"
-                        ((counter++))
-                    fi
-                done
-                echo ""
-            fi
-        done
-
-        while true; do
-            echo "Enter the number corresponding to the world you want, or '0' to create a new one:"
-            read selection
-
-            if [[ $selection -eq 0 ]]; then
-                return 1
-            elif [[ $selection -ge 1 && $selection -lt $counter ]]; then
-                SERVER_ID="${server_ids[$selection]}"
-                WORLD_ID="${world_ids[$selection]}"
-                WORLD_NAME="${world_names[$selection]}"
-                return 0
-            else
-                echo "Invalid selection. Please try again."
-            fi
-        done
+        return 0  # Success: at least one world found
     else
-        echo "No existing worlds found, initiating fresh install."
-        return 1
+        return 1  # Error: no worlds found
     fi
+}
+
+# Function to select a world from the list
+select_world() {
+    local selection counter=${#display_lines[@]}
+
+    for line in "${display_lines[@]}"; do
+        echo "$line"
+    done
+
+    while true; do
+        echo "Enter the number corresponding to the world you want:"
+        read selection
+
+        if [[ $selection -ge 1 && $selection -le $counter ]]; then
+            SERVER_ID="${server_ids[$selection]}"
+            WORLD_ID="${world_ids[$selection]}"
+            WORLD_NAME="${world_names[$selection]}"
+            return 0  # Valid selection
+        else
+            echo "Invalid selection. Please try again."
+        fi
+    done
 }
 
 # Function to center text based on terminal width
@@ -177,13 +171,13 @@ get_multiplayer_details(){
     echo "----------------------------------------------------------------------------------------------"
     echo " If you choose to advertise your server, in the multiplayer server tab it will look like this:"
     echo ""
-    echo "      My Server Name - My World Name"
+    echo "      My Server Name - $WORLD_NAME"
     echo ""
     echo "----------------------------------------------------------------------------------------------"
-    read -p "Server Name [My Server]): " SERVER_NAME
+    read -p "Server Name [My Server Name]): " SERVER_NAME
     # Check if we need a default value set.
     if [ -z "$SERVER_NAME" ]; then
-        SERVER_NAME="My Server"
+        SERVER_NAME="My Server Name"
     fi
 
     if ask_yes_no "Advertise Server to the public in-game?"; then
@@ -215,27 +209,27 @@ get_network_ports(){
     done
 }
 
-#Checks to see if the required software is installed.
-set_dependency_status() {
+#Check if our dependencies are installed and check if sapiens is installed.
+get_dependency_status() {
     local dependencies=(screen psmisc steamcmd jq)
     local steamcmd_dir="$HOME/.local/share/Steam/steamcmd" # Base directory for SteamCMD
     local executable_name="linuxServer" # Executable to check for
 
-    DEPENDENCIES_INSTALLED="true"
     SAPIENS_INSTALLED="false" # Default to false until found
 
     # Check for package dependencies
     for pkg in "${dependencies[@]}"; do
         if ! dpkg -s "$pkg" &> /dev/null; then
-            DEPENDENCIES_INSTALLED="false"
-            break # Exit the loop as soon as one missing dependency is found
+            echo "DEBUG: Return with error if a dependency is not installed"
+            return 1 # Return with error if a dependency is not installed
+        else
+            # Check if the Sapiens executable exists anywhere within the steamcmd directory, silently
+            if find "$steamcmd_dir" -type f -name "$executable_name" 2>/dev/null | grep -q . 2>/dev/null; then
+                SAPIENS_INSTALLED="true"
+            fi
+            return 0 # All dependencies are installed
         fi
     done
-
-    # Check if the Sapiens executable exists anywhere within the steamcmd directory
-    if find "$steamcmd_dir" -type f -name "$executable_name" | grep -q .; then
-        SAPIENS_INSTALLED="true"
-    fi
 }
 
 # Install the required dependencies.
@@ -264,7 +258,7 @@ install_dependencies(){
 # Despite the name, this can be used for a fresh install as well.
 # Uses a steamcmd config file where the sapiens appID is set.
 upgrade_sapiens(){
-    echo "Running steamcmd and installing Sapiens Dedicated Server..."
+    echo "Running steamcmd and refreshing Sapiens Dedicated Server..."
     # Run steamcmd with preconfigured Sapiens Server update script
     steamcmd +runscript ~/sapiens-server/steamupdate.txt
 }
@@ -385,6 +379,8 @@ create_config() {
 # so you shouldn't change the values in here. Please run ./install.sh if you want to 
 # change these values, select your existing world when found and fill in the values to change.
 #---------------------------------------------------------------------------------------------
+
+VERSION="0.4.0" # Revision number of the script set
 
 # Variables set up during installation.  
 SCRIPT_DIR="$SCRIPT_DIR"        # Base dir where the scripts are located.

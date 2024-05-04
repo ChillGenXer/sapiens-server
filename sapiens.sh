@@ -3,13 +3,14 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: A set of commands for managing a running Sapiens dedicated server on Linux.
 
+cd $HOME/sapiens-server
+
 # Import the configuration
 if [ ! -f "config.sh" ]; then
   echo "Error: config.sh file not found.  Please ensure you run 'install.sh' first."
   exit 1
 else
   source config.sh
-  cd $SCRIPT_DIR
 fi
 
 # Checks to see if there is an active screen session, implying the server is up
@@ -46,7 +47,7 @@ start_server() {
 stop_server() {
     if pgrep -x "linuxServer" > /dev/null; then
         killall linuxServer
-        echo "'$WORLD_NAME' has been stopped.  If you intend to keep it stopped, please ensure you run ./sapiens autorestart 0 to disable any autorestarts."
+        echo "'$WORLD_NAME' has been stopped.  If you intend to keep it stopped, please run ./sapiens.sh hardstop to keep it from restarting."
     else
         echo "'$WORLD_NAME' was already stopped."
     fi
@@ -56,12 +57,9 @@ stop_server() {
 hardstop_server(){
     if pgrep -x "linuxServer" > /dev/null; then
         killall linuxServer
-        echo "'$WORLD_NAME' has been hard stopped, and autorestart has been turned OFF."
-    else
-        auto_restart "0"
     fi
-
-    echo "'$WORLD_NAME' has been hard stopped, and autorestart has been turned OFF."
+    echo "'$WORLD_NAME' has been hard stopped."
+    auto_restart "0"
 }
 
 # Function to backup the world folder to the specified backup directory.
@@ -142,6 +140,7 @@ case $1 in
         ;;    
     *)
         echo "Sapiens Server Manager"
+        echo "Version: $VERSION"
         echo "chillgenxer@chillgenxer.com"
         echo ""
         echo "Usage examples:"
