@@ -54,6 +54,7 @@ Your server is now ready to run!  From now on, when you log in you can change to
 ./sapiens.sh **start** - starts your world in the background.
 ./sapiens.sh **console** - Bring the running world's console. To exit without stopping the server hold CTRL and type A D.       
 ./sapiens.sh **stop** - stops your world.
+./sapiens.sh **hardstop** - Stops your world and cancels autorestart.
 ./sapiens.sh **restart** - Basically a stop, wait, and then a start. Good to use if things are getting laggy.
 ./sapiens.sh **upgrade** - This will update you to the latest version of the Sapiens server."
 ./sapiens.sh **backup** - Stops the world and backs it up to the backup folder."

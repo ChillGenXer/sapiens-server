@@ -52,15 +52,31 @@ stop_server() {
     fi
 }
 
+#Stop the server, and cancel the restart timer
+hardstop_server(){
+    if pgrep -x "linuxServer" > /dev/null; then
+        killall linuxServer
+        echo "'$WORLD_NAME' has been hard stopped, and autorestart has been turned OFF."
+    else
+        auto_restart "0"
+    fi
+
+    echo "'$WORLD_NAME' has been hard stopped, and autorestart has been turned OFF."
+}
+
 # Function to backup the world folder to the specified backup directory.
 backup_server() {
+ 
+    echo "Stopping server if necessary..."
+    stop_server
+
     echo "Backing up the world '$WORLD_NAME'..."
     TIMESTAMP=$(date +%Y%m%d%H%M%S)
     BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
-    # Navigate to the parent directory
     cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
     # Archive the specific world directory, including its name in the archive
     tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
+    
 }
 
 # Use steamcmd to upgrade the Sapiens Dedicated Server
@@ -70,7 +86,14 @@ upgrade_server() {
 
 # Open the screen session to see the server console
 open_console() {
-    screen -r $SCREEN_NAME
+    # Call check_screen to see if the screen session exists
+    if check_screen; then
+        # If a screen session is found, resume it
+        screen -r $SCREEN_NAME
+    else
+        # Let the user know.
+        echo "The console for $WORLD_NAME was not found [screen=$SCREEN_NAME]. Please start the server first."
+    fi
 }
 
 # Set a cronjob to restart the Sapiens server.
@@ -96,6 +119,9 @@ case $1 in
         ;;
     stop)
         stop_server
+        ;;
+    hardstop)
+        hardstop_server
         ;;
     restart)
         stop_server
