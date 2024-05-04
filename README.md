@@ -1,4 +1,4 @@
-# sapiens-server
+# Sapiens Server Manager
 Installation and management scripts for the Sapiens Dedicated Server on Ubuntu (Linux).<br>
 **Last tested Sapiens Dedicated Server Version: 0.5.0.44**
 
