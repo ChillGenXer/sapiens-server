@@ -30,30 +30,31 @@ if ! source functions.sh; then
     exit 1
 fi
 
-# Splash text to start the interaction with the user.
-splash_text
-
 # Check if the script is running as root
 check_for_root
+
+# Splash text to start the interaction with the user.
+splash_text
 
 # Check if all required dependencies are installed
 # echo "DEBUG: Calling get_dependency_status"
 if ! get_dependency_status; then
     echo "The account $(whoami) does not have the necessary software installed. Starting installation..."
-    install_dependencies
-    patch_steam
-    upgrade_sapiens
+    install_dependencies    # Install Steamcmd and a few needed utilities
+    patch_steam             # Patch for the steam client.
+    upgrade_sapiens         # Use steamcmd to update the sapiens executable.
 fi
 
-start_application
-
-#get_multiplayer_details
-#get_network_ports
-#create_config
-#set_permissions
-#install_summary
-
-# Ask if they want it started.
-#if ask_yes_no "Start $WORLD_NAME now"; then
-#    ./sapiens.sh start
-#fi
+# Main Application Loop
+while true; do
+    clear
+    main_menu_ui
+    case $? in
+        1)  # Exit the application
+            echo "Closing Sapiens Server manager.  Control your server with the ./sapiens.sh command."
+            break
+            ;;
+        *)  # For all other cases, loop back to the main menu
+            ;;
+    esac
+done

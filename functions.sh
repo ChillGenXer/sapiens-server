@@ -24,51 +24,44 @@ check_for_root() {
     fi
 }
 
-# This function acts as the entry point and controls the flow of the menu system.
-start_application() {
-    while true; do
-        clear
-        main_menu
-        case $? in
-            1)  # Exit the application
-                echo "Closing Sapiens Server manager.  Control your server with the ./sapiens.sh command."
-                break
-                ;;
-            *)  # For all other cases, loop back to the main menu
-                ;;
-        esac
-    done
-}
+# Application Main Menu
+main_menu_ui() {
+    # Display the active world if one is selected
+    local active_world_msg="Active World: ${WORLD_NAME:-'None Selected'}"
 
-main_menu() {
     local options=(
-        "1" "Launch/Reconfigure an Existing World"
-        "2" "Create a New World"
-        "3" "Update Sapiens Server From Steam"
-        "4" "Reinstall Dependencies"
-        "5" "Exit"  # Adding an explicit exit option
+        "1" "Manage Active World"
+        "2" "Launch/Reconfigure an Existing World"
+        "3" "Create a New World"
+        "4" "Update Sapiens Server From Steam"
+        "5" "Reinstall Dependencies"
+        "6" "Exit"  # Adding an explicit exit option
     )
     
-    local user_choice=$(whiptail --title "Sapiens Server Manager" --menu "Choose an option:" 15 60 5 "${options[@]}" 3>&1 1>&2 2>&3)
+    local user_choice=$(whiptail --title "Sapiens Server Manager - $active_world_msg" --menu "Choose an option:" 20 78 6 "${options[@]}" 3>&1 1>&2 2>&3)
 
     case $user_choice in
         1)
+            manage_world_menu_ui
+            ;;
+        2)
             if refresh_worldlist; then
-                manage_worlds
+                select_world_ui
+                setup_server_ui
             else
                 whiptail --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
             fi
             ;;
-        2)
+        3)
             create_world_ui
             ;;
-        3)
+        4)
             upgrade_sapiens
             ;;
-        4)
+        5)
             install_dependencies
             ;;
-        5)
+        6)
             echo "Exiting application."
             return 1  # Exit application
             ;;
@@ -83,8 +76,8 @@ main_menu() {
     return 0
 }
 
-# Function to display and select a world from the list using whiptail
-manage_worlds() {
+# Function to display and select the active world
+select_world_ui() {
     refresh_worldlist
 
     # Check the exit status of the last command
@@ -131,6 +124,99 @@ manage_worlds() {
     fi
 }
 
+# Function to configure the active world
+setup_server_ui() {
+    # Get the server name with a default value, defaulting to the existing SERVER_NAME or a placeholder
+    SERVER_NAME=$(whiptail --inputbox "Enter server name:" 10 60 "${SERVER_NAME:-'My Server Name'}" 3>&1 1>&2 2>&3)
+    SERVER_NAME=${SERVER_NAME:-"My Server Name"}
+
+    # Ask if the server should be advertised with the default set to the existing value
+    if whiptail --yesno "Advertise server to the public in-game? Current setting: $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")" 10 60; then
+        ADVERTISE="true"
+    else
+        ADVERTISE="false"
+    fi
+
+    # Ask if logs should be sent on crash
+    if whiptail --yesno "Do you want to send your log files to help fix bugs on a crash?" 10 60; then
+        PROVIDE_LOGS="--yes"
+        # Ask if world data should also be sent
+        if whiptail --yesno "Do you also want to send a copy of your world (can take long for large worlds)?" 10 60; then
+            PROVIDE_LOGS="--yes-upload-world"
+        fi
+    else
+        PROVIDE_LOGS=""
+    fi
+
+    # Get the UDP port, using the existing UDP_PORT if not provided
+    UDP_PORT=$(whiptail --inputbox "Enter UDP Port:" 10 60 "$UDP_PORT" 3>&1 1>&2 2>&3)
+    UDP_PORT=${UDP_PORT:-$UDP_PORT}
+
+    # Calculate the Steam port, which is UDP port + 1
+    STEAM_PORT=$((UDP_PORT + 1))
+
+    # Get the HTTP port, using the existing HTTP_PORT if not provided, and ensure it does not conflict with the Steam port
+    HTTP_PORT=$(whiptail --inputbox "Enter HTTP Port:" 10 60 "$HTTP_PORT" 3>&1 1>&2 2>&3)
+    HTTP_PORT=${HTTP_PORT:-$HTTP_PORT}
+    while [ "$STEAM_PORT" -eq "$HTTP_PORT" ]; do
+        HTTP_PORT=$(whiptail --inputbox "Conflict detected: HTTP port ($HTTP_PORT) cannot be the same as Steam port ($STEAM_PORT). Enter a different HTTP Port:" 10 60 "$HTTP_PORT" 3>&1 1>&2 2>&3)
+    done
+
+    # Display summary of configuration
+    whiptail --msgbox "Configuration complete:\nServer Name: $SERVER_NAME\nAdvertise: $ADVERTISE\nLog Reporting: $PROVIDE_LOGS\nUDP Port: $UDP_PORT\nHTTP Port: $HTTP_PORT\nSteam Port: $STEAM_PORT" 12 80
+}
+
+# Create a new Sapiens world via linuxServer --new
+create_world_ui() {
+    # Prompt for the world name using whiptail
+    WORLD_NAME=$(whiptail --inputbox "Enter the name for the new world (or leave empty for 'Nameless Sapiens World'):" 10 60 3>&1 1>&2 2>&3)
+    
+    # Default the world name if none is provided
+    if [ -z "$WORLD_NAME" ]; then
+        WORLD_NAME="Nameless Sapiens World"
+    fi
+
+    # Show a gauge while the world is being created
+    {
+        echo 10
+        sleep 1
+        $HOME/.local/share/Steam/steamcmd/sapiens/linuxServer --server-id "$SERVER_ID" --new "$WORLD_NAME" >/dev/null 2>&1 &
+        pid=$!
+        echo 50
+        sleep 5  
+        kill $pid  # Intending to stop the background process as per your original function
+        sleep 2
+        if kill -0 $pid 2>/dev/null; then
+            echo 75
+            sleep 1
+            echo 100
+            whiptail --msgbox "Failed to create world. Please try again." 10 50
+            return 1
+        fi
+        echo 100
+    } | whiptail --gauge "Please wait, creating the world..." 6 50 0
+
+    # Attempt to retrieve the WORLD_ID of the new world
+    base_dir="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds"
+    for world_dir in "$base_dir"/*; do
+        info_json="$world_dir/info.json"
+        if [[ -f "$info_json" ]]; then
+            current_world_name=$(jq -r '.value0.worldName' "$info_json")
+            if [[ "$current_world_name" == "$WORLD_NAME" ]]; then
+                WORLD_ID=$(basename "$world_dir")
+                break
+            fi
+        fi
+    done
+
+    # Validate if WORLD_ID was successfully retrieved
+    if [[ -z "$WORLD_ID" ]]; then
+        whiptail --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
+    else
+        whiptail --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now configure this world in the main menu." 10 70
+    fi
+}
+
 # Function to refresh and check world list
 refresh_worldlist() {
     local server_dir world_dir
@@ -164,12 +250,6 @@ refresh_worldlist() {
     fi
 }
 
-# Function to center text based on terminal width
-print_centered() {
-    local input="$1"
-    printf "%*s\n" $(( (${#input} + $(tput cols)) / 2 )) "$input"
-}
-
 # Welcome screen
 splash_text() {
     local width=$(tput cols)  # Get the current width of the terminal
@@ -196,37 +276,6 @@ splash_text() {
     echo ""
 }
 
-# Function to ask for yes/no response
-ask_yes_no() {
-    local prompt="$1"
-    local input
-
-    while true; do
-        # Ask the user and read the input
-        read -p "$prompt [y/n]: " input
-        
-        # Check the response
-        case "$input" in
-            [Yy]) return 0 ;;  # Return 0 for 'yes' responses
-            [Nn]) return 1 ;;  # Return 1 for 'no' responses
-            *) echo "Please enter y or n." ;;  # Prompt again for anything else
-        esac
-    done
-}
-
-# Function to read port with default
-read_port() {
-    local prompt=$1
-    local default_port=$2
-    local input
-
-    # Prompt the user and read input
-    read -p "$prompt [$default_port]: " input
-
-    # Use the default if no input is provided
-    echo "${input:-$default_port}"
-}
-
 # Add the script directory to the path
 add_to_path(){
     # Check if the directory is already in the PATH
@@ -240,70 +289,6 @@ add_to_path(){
 
     # Source the .bashrc to update the PATH in the current session
     source $HOME/.bashrc
-}
-
-# Get the details for the world that will be controlled by the scripts.
-get_new_server_details() {
-    read -p "World Name [Nameless Sapiens World]): " WORLD_NAME
-    if [ -z "$WORLD_NAME" ]; then
-        WORLD_NAME="Nameless Sapiens World"
-    fi
-}
-
-# Get the details for advertising the server on the network.
-get_multiplayer_details(){
-    echo "----------------------------------------------------------------------------------------------"
-    echo " If you choose to advertise your server, in the multiplayer server tab it will look like this:"
-    echo ""
-    echo "      My Server Name - $WORLD_NAME"
-    echo ""
-    echo "----------------------------------------------------------------------------------------------"
-    read -p "Server Name [My Server Name]): " SERVER_NAME
-    # Check if we need a default value set.
-    if [ -z "$SERVER_NAME" ]; then
-        SERVER_NAME="My Server Name"
-    fi
-
-    if ask_yes_no "Advertise Server to the public in-game?"; then
-        ADVERTISE="true"
-        echo "Server will be advertised."
-    else
-        ADVERTISE="false"
-        echo "Server will not be advertised."
-    fi
-
-    if ask_yes_no "If you don't mind helping the developer to fix bugs in Sapiens, do you want to send your log files on a crash?"; then
-        PROVIDE_LOGS="--yes "
-        echo "Log reporting Enabled."
-        if ask_yes_no "Do you also want to send a copy of your world (can take long for large worlds)?"; then
-            PROVIDE_LOGS="--yes-upload-world "
-            echo"Log reporting + world send Enabled."
-        fi
-    else
-        PROVIDE_LOGS=""
-        echo "No reports will be sent to the developer on a crash."
-    fi
-
-}
-
-# Get the network ports required by the server
-get_network_ports(){
-    # Read UDP port from user or use default
-    echo ""
-    UDP_PORT=$(read_port "Enter UDP Port" $UDP_PORT)
-
-    # Calculate the Steam port, which is UDP port + 1
-    STEAM_PORT=$((UDP_PORT + 1))
-
-    # Read HTTP port from user or use default
-    HTTP_PORT=$(read_port "Enter HTTP Port" $HTTP_PORT)
-
-    # Ensure the Steam port does not conflict with the HTTP port
-    while [ "$STEAM_PORT" -eq "$HTTP_PORT" ]; do
-        echo "Conflict detected: HTTP port ($HTTP_PORT) cannot be the same as Steam port ($STEAM_PORT)."
-        # Re-prompt for the HTTP port
-        HTTP_PORT=$(read_port "Enter a different HTTP Port" $HTTP_PORT)
-    done
 }
 
 #Check if our dependencies are installed and check if sapiens is installed.
@@ -374,106 +359,6 @@ patch_steam(){
         echo "Patch complete."
     else
         echo "Symbolic link already exists, no need to patch."
-    fi
-}
-
-create_world_ui() {
-    # Prompt for the world name using whiptail
-    WORLD_NAME=$(whiptail --inputbox "Enter the name for the new world (or leave empty for 'Nameless Sapiens World'):" 10 60 3>&1 1>&2 2>&3)
-    
-    # Default the world name if none is provided
-    if [ -z "$WORLD_NAME" ]; then
-        WORLD_NAME="Nameless Sapiens World"
-    fi
-
-    # Show a gauge while the world is being created
-    {
-        echo 10
-        sleep 1
-        $HOME/.local/share/Steam/steamcmd/sapiens/linuxServer --server-id "$SERVER_ID" --new "$WORLD_NAME" >/dev/null 2>&1 &
-        pid=$!
-        echo 50
-        sleep 5  # Simulate some progress
-        kill $pid  # Intending to stop the background process as per your original function
-        sleep 2
-        if kill -0 $pid 2>/dev/null; then
-            echo 75
-            sleep 1
-            echo 100
-            whiptail --msgbox "Failed to create world. Please try again." 10 50
-            return 1
-        fi
-        echo 100
-    } | whiptail --gauge "Please wait, creating the world..." 6 50 0
-
-    # Attempt to retrieve the WORLD_ID of the new world
-    base_dir="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds"
-    for world_dir in "$base_dir"/*; do
-        info_json="$world_dir/info.json"
-        if [[ -f "$info_json" ]]; then
-            current_world_name=$(jq -r '.value0.worldName' "$info_json")
-            if [[ "$current_world_name" == "$WORLD_NAME" ]]; then
-                WORLD_ID=$(basename "$world_dir")
-                break
-            fi
-        fi
-    done
-
-    # Validate if WORLD_ID was successfully retrieved
-    if [[ -z "$WORLD_ID" ]]; then
-        whiptail --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
-    else
-        whiptail --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now configure this world in the main menu." 10 70
-    fi
-}
-
-# Create a new world on the server.
-create_world(){
-    # Get the PID of the background process and wait.
-    $HOME/.local/share/Steam/steamcmd/sapiens/linuxServer --server-id "$SERVER_ID" --new "$WORLD_NAME" >/dev/null 2>&1 &
-    pid=$!
-    echo "Please wait, creating Sapien world '$WORLD_NAME' with background process PID $pid..."
-    sleep 5
-
-    # Kill the process and wait
-    kill $pid
-    sleep 2
-
-    # Check if the process was successfully killed
-    if kill -0 $pid 2>/dev/null; then
-        echo "Failed to kill process $pid, something went wrong."
-    else
-        echo "World creation complete!"
-    fi
-
-    #Let's get the WORLD_ID of the new world.
-    # Define the base directory where worlds are stored
-    base_dir="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds"
-
-    # Check each subdirectory within the worlds directory
-    for world_dir in "$base_dir"/*; do
-        # Path to the potential info.json file
-        info_json="$world_dir/info.json"
-
-        # Check if the info.json file exists
-        if [[ -f "$info_json" ]]; then
-            # Extract the worldName from the info.json file
-            current_world_name=$(jq -r '.value0.worldName' "$info_json")
-
-            # Compare the extracted world name with the expected world name
-            if [[ "$current_world_name" == "$WORLD_NAME" ]]; then
-                # If the world name matches, extract and set the WORLD_ID
-                WORLD_ID=$(basename "$world_dir")
-                break
-            fi
-        fi
-    done
-
-    # Check if WORLD_ID was set
-    if [[ -z "$WORLD_ID" ]]; then
-        echo "No matching world found for world name $WORLD_NAME.  Something has gone wrong, please update World ID manually in config.sh."
-    else
-        echo "World ID for '$WORLD_NAME' is '$WORLD_ID'."
     fi
 }
 
