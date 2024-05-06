@@ -8,22 +8,6 @@ declare -a world_ids
 declare -a world_names
 declare -a display_lines
 
-# This function checks to make sure that the user is not using "root" to install the server.
-check_for_root() {
-    if [ "$EUID" -eq 0 ]; then
-        echo "The Sapiens dedicated server should not be run as the root user. Please create a new user to run the server that has sudo access."
-        echo "The user 'sapserver' is used in the instructions, you can create it like this logged in as root (as you are now):"
-        echo ""
-        echo "  adduser sapserver"
-        echo "  usermod -aG sudo sapserver"
-        echo ""
-        echo "Once this user has been created log in as that user, get this project and run this script again."
-        echo ""
-        echo "git clone https://github.com/ChillGenXer/sapiens-server.git"
-        exit 1
-    fi
-}
-
 # Application Main Menu
 main_menu_ui() {
     # Display the active world if one is selected
@@ -74,6 +58,83 @@ main_menu_ui() {
             ;;
     esac
     return 0
+}
+
+# Menu for managing the active world
+manage_world_menu_ui() {
+    while true; do
+        local options=(
+            "1" "Show Active World Info"
+            "2" "Start Server"
+            "3" "Restart Server"
+            "4" "Stop Server"
+            "5" "Hard Stop Server"
+            "6" "Toggle Auto Restart"
+            "7" "Backup Server"
+            "8" "Open Console"
+            "9" "Exit to Main Menu"
+        )
+        
+        local user_choice=$(whiptail --title "Manage Active World - $WORLD_NAME" --menu "Select an operation for the active world:" 20 78 9 "${options[@]}" 3>&1 1>&2 2>&3)
+        
+        case $user_choice in
+            1)
+                active_world_info
+                ;;
+            2)
+                start_server
+                ;;
+            3)
+                restart_server
+                ;;
+            4)
+                stop_server
+                ;;
+            5)
+                hardstop_server
+                ;;
+            6)
+                auto_restart
+                ;;
+            7)
+                backup_server
+                ;;
+            8)
+                open_console
+                ;;
+            9)
+                # Exit to the main menu
+                break
+                ;;
+            *)
+                if [ -z "$user_choice" ]; then
+                    # If the user pressed ESC or Cancel, exit the loop
+                    break
+                else
+                    whiptail --msgbox "Invalid choice. Please try again." 8 45
+                fi
+                ;;
+        esac
+    done
+}
+
+active_world_info() {
+    # Gather server information
+    IP_ADDRESS=$(ip addr show $(ip route show default | awk '/default/ {print $5}') | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}')
+    local server_info="Server Name: $SERVER_NAME\n"
+    server_info+="World Name: $WORLD_NAME\n"
+    server_info+="Local IP Address: $IP_ADDRESS\n"
+    server_info+="UDP Port: $UDP_PORT\n"
+    server_info+="Steam Port (UDP Port + 1): $((UDP_PORT + 1))\n"  # Calculate Steam port on the fly
+    server_info+="HTTP Port: $HTTP_PORT\n"
+    server_info+="Server Publicly Advertised: $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")\n"
+    server_info+="Multiplayer Server Entry: $SERVER_NAME - $WORLD_NAME\n"
+    server_info+="---------------------------------------------------------------------\n"
+    server_info+="If you intend to expose the server outside your network, please ensure\n"
+    server_info+="you forward these ports on your router to this machine (IP Address $IP_ADDRESS)."
+
+    # Display the server information using whiptail
+    whiptail --title "Active World Information" --msgbox "$server_info" 20 78
 }
 
 # Function to display and select the active world
@@ -214,6 +275,22 @@ create_world_ui() {
         whiptail --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
     else
         whiptail --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now configure this world in the main menu." 10 70
+    fi
+}
+
+# This function checks to make sure that the user is not using "root" to install the server.
+check_for_root() {
+    if [ "$EUID" -eq 0 ]; then
+        echo "The Sapiens dedicated server should not be run as the root user. Please create a new user to run the server that has sudo access."
+        echo "The user 'sapserver' is used in the instructions, you can create it like this logged in as root (as you are now):"
+        echo ""
+        echo "  adduser sapserver"
+        echo "  usermod -aG sudo sapserver"
+        echo ""
+        echo "Once this user has been created log in as that user, get this project and run this script again."
+        echo ""
+        echo "git clone https://github.com/ChillGenXer/sapiens-server.git"
+        exit 1
     fi
 }
 
