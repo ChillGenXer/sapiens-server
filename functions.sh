@@ -187,6 +187,19 @@ get_multiplayer_details(){
         ADVERTISE="false"
         echo "Server will not be advertised."
     fi
+
+    if ask_yes_no "If you don't mind helping the developer to fix bugs in Sapiens, do you want to send your log files on a crash?"; then
+        PROVIDE_LOGS="--yes "
+        echo "Log reporting Enabled."
+        if ask_yes_no "Do you also want to send a copy of your world (can take long for large worlds)?"; then
+            PROVIDE_LOGS="--yes-upload-world "
+            echo"Log reporting + world send Enabled."
+        fi
+    else
+        PROVIDE_LOGS=""
+        echo "No reports will be sent to the developer on a crash."
+    fi
+
 }
 
 # Get the network ports required by the server
@@ -253,8 +266,7 @@ install_dependencies(){
     sudo apt install screen psmisc procps steamcmd jq
 }
 
-# Despite the name, this can be used for a fresh install as well.
-# Uses a steamcmd config file where the sapiens appID is set.
+# Uses a steamcmd config file where the sapiens appID is set. Despite the name, this can be used for a fresh install as well.
 upgrade_sapiens(){
     echo "Running steamcmd and refreshing Sapiens Dedicated Server..."
     # Run steamcmd with preconfigured Sapiens Server update script
@@ -378,7 +390,7 @@ create_config() {
 # change these values, select your existing world when found and fill in the values to change.
 #---------------------------------------------------------------------------------------------
 
-VERSION="0.4.0" # Revision number of the script set
+VERSION="0.4.1" # Revision number of the script set
 
 # Variables set up during installation.  
 SCRIPT_DIR="$SCRIPT_DIR"        # Base dir where the scripts are located.
@@ -393,6 +405,7 @@ UDP_PORT="$UDP_PORT"
 HTTP_PORT="$HTTP_PORT"
 ADVERTISE=$ADVERTISE
 SERVER_NAME="$SERVER_NAME"      # Name of the server, as shown in Multiplayer Tab
+PROVIDE_LOGS="$PROVIDE_LOGS"
 
 # Server locations
 GAME_DIR="$HOME/.local/share/Steam/steamcmd/sapiens"        # Where Steam installs the linuxServer executable

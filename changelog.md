@@ -1,3 +1,7 @@
+##0.4.1## - 2024-05-05
+- Made bug reporting options configurable.
+- Fixed placeholder descriptions for log_backups and world_backups.
+
 ##0.4.0##
 - Started change log
 - Cleaned up a bit of the install flow.

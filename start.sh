@@ -15,13 +15,14 @@ fi
 # Server lifecycle loop
 while true; do
     # Start the server with the configured world's parameters.
+    # TODO: This is cludgy, you need to fix this up.
     cd $GAME_DIR
     if [ "$ADVERTISE" == "true" ]; then
-        echo "./linuxServer --advertise '$SERVER_NAME' --server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'"
-        ./linuxServer --advertise "$SERVER_NAME" --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
+        echo "./linuxServer $PROVIDE_LOGS--advertise '$SERVER_NAME' --server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'"
+        ./linuxServer $PROVIDE_LOGS--advertise "$SERVER_NAME" --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
         status=$?
     else
-        echo "./linuxServer --server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'"
+        echo "./linuxServer $PROVIDE_LOGS--server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'"
         ./linuxServer --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
         status=$?
     fi
