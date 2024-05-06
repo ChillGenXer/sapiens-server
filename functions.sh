@@ -2,6 +2,16 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Script file to externalize a few of the functions.
 
+# Dependencies for the server to run and script to work
+declare -A DEPENDENCIES=(
+    [screen]=screen
+    [psmisc]=killall
+    [steamcmd]=steamcmd
+    [jq]=jq
+    [procps]=ps
+    [dialog]=dialog
+)
+
 #Inventory for our worlds.
 declare -a server_ids
 declare -a world_ids
@@ -15,7 +25,7 @@ main_menu_ui() {
 
     local options=(
         "1" "Manage Active World"
-        "2" "Launch/Reconfigure an Existing World"
+        "2" "Select the Active World"
         "3" "Create a New World"
         "4" "Update Sapiens Server From Steam"
         "5" "Reinstall Dependencies"
@@ -79,7 +89,7 @@ manage_world_menu_ui() {
         
         case $user_choice in
             1)
-                active_world_info
+                active_world_info_ui
                 ;;
             2)
                 start_server
@@ -118,22 +128,40 @@ manage_world_menu_ui() {
     done
 }
 
-active_world_info() {
+# Information on the currently active world.
+active_world_info_ui() {
+    # Initialize local variables
+    local send_logs="No"
+    local send_world="No"
+
+    # Determine the values based on PROVIDE_LOGS
+    case "$PROVIDE_LOGS" in
+        "--yes")
+            send_logs="Yes"
+            ;;
+        "--yes-upload-world")
+            send_logs="Yes"
+            send_world="Yes"
+            ;;
+    esac
+
     # Gather server information
     IP_ADDRESS=$(ip addr show $(ip route show default | awk '/default/ {print $5}') | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}')
-    local server_info="Server Name: $SERVER_NAME\n"
-    server_info+="World Name: $WORLD_NAME\n"
-    server_info+="Local IP Address: $IP_ADDRESS\n"
-    server_info+="UDP Port: $UDP_PORT\n"
-    server_info+="Steam Port (UDP Port + 1): $((UDP_PORT + 1))\n"  # Calculate Steam port on the fly
-    server_info+="HTTP Port: $HTTP_PORT\n"
-    server_info+="Server Publicly Advertised: $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")\n"
-    server_info+="Multiplayer Server Entry: $SERVER_NAME - $WORLD_NAME\n"
+    local server_info="Server Name               : $SERVER_NAME\n"
+    server_info+="World Name                : $WORLD_NAME\n"
+    server_info+="Local IP Address          : $IP_ADDRESS\n"
+    server_info+="UDP Port                  : $UDP_PORT\n"
+    server_info+="Steam Port (UDP Port + 1) : $((UDP_PORT + 1))\n"  # Calculate Steam port on the fly
+    server_info+="HTTP Port                 : $HTTP_PORT\n"
+    server_info+="Advertising In-Game       : $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")\n"
+    server_info+="Send logs on crash        : $send_logs\n"
+    server_info+="Send world on crash       : $send_world\n"
+    server_info+="Multiplayer Server Entry  : $SERVER_NAME - $WORLD_NAME\n"
     server_info+="---------------------------------------------------------------------\n"
     server_info+="If you intend to expose the server outside your network, please ensure\n"
-    server_info+="you forward these ports on your router to this machine (IP Address $IP_ADDRESS)."
+    server_info+="you forward all 3 ports on your router to this machine (IP Address $IP_ADDRESS)."
 
-    # Display the server information using whiptail
+    # Display the server information
     whiptail --title "Active World Information" --msgbox "$server_info" 20 78
 }
 
@@ -223,8 +251,11 @@ setup_server_ui() {
         HTTP_PORT=$(whiptail --inputbox "Conflict detected: HTTP port ($HTTP_PORT) cannot be the same as Steam port ($STEAM_PORT). Enter a different HTTP Port:" 10 60 "$HTTP_PORT" 3>&1 1>&2 2>&3)
     done
 
+    # Rewrite the config file
+    create_config
+
     # Display summary of configuration
-    whiptail --msgbox "Configuration complete:\nServer Name: $SERVER_NAME\nAdvertise: $ADVERTISE\nLog Reporting: $PROVIDE_LOGS\nUDP Port: $UDP_PORT\nHTTP Port: $HTTP_PORT\nSteam Port: $STEAM_PORT" 12 80
+    active_world_info_ui
 }
 
 # Create a new Sapiens world via linuxServer --new
@@ -370,23 +401,35 @@ add_to_path(){
 
 #Check if our dependencies are installed and check if sapiens is installed.
 get_dependency_status() {
-    local dependencies=(screen psmisc steamcmd jq)
-    local steamcmd_dir="$HOME/.local/share/Steam/steamcmd" # Base directory for SteamCMD
-    local executable_name="linuxServer" # Executable to check for
+    local steamcmd_dir="$HOME/.local/share/Steam/steamcmd"
+    local executable_name="linuxServer"
+    local log_file="$HOME/install.log"
 
-    SAPIENS_INSTALLED="false" # Default to false until found
+    # Check if log file exists and create it if it does not
+    if [ ! -f "$log_file" ]; then
+        touch "$log_file"
+    else
+        : > "$log_file"  # Truncate the existing log file to start fresh
+    fi
 
-    # Check for package dependencies
-    for pkg in "${dependencies[@]}"; do
-        if ! dpkg -s "$pkg" &> /dev/null; then
-            #echo "DEBUG: Return with error if a dependency is not installed"
-            return 1 # Return with error if a dependency is not installed
+    SAPIENS_INSTALLED="false"
+    # Check for package dependencies by command availability
+    for pkg in "${!DEPENDENCIES[@]}"; do
+        if ! command -v "${DEPENDENCIES[$pkg]}"; then
+            echo "Missing dependency: $pkg (${DEPENDENCIES[$pkg]})" | tee -a "$log_file"
+            return 1  # Return with error if a dependency is not installed
+        else
+            # Log the success of found commands to the log file
+            echo "${DEPENDENCIES[$pkg]} found" >> "$log_file"
         fi
     done
-    #Check for sapiens. I don't think this is needed
-    if find "$steamcmd_dir" -type f -name "$executable_name" 2>/dev/null | grep -q . 2>/dev/null; then
+    # Check for sapiens executable
+    if [ -f "$steamcmd_dir/$executable_name" ]; then
         SAPIENS_INSTALLED="true"
-    fi 
+        echo "$executable_name found in $steamcmd_dir" >> "$log_file"
+    else
+        echo "$executable_name not found in $steamcmd_dir" >> "$log_file"
+    fi
 }
 
 # Install the required dependencies.
@@ -398,18 +441,22 @@ install_dependencies(){
     # steamcmd - Steam commandline tool for installing the Sapiens server.
     # jq - Allows reading json files.
     # procps - process grep
+    # dialog - Console UI
 
     echo ""
     echo "Installing dependencies..."
     echo ""
 
     # Add the Steam repository and prep for install
-    sudo add-apt-repository multiverse
+    sudo add-apt-repository -y multiverse
     sudo dpkg --add-architecture i386
     sudo apt update
 
+    # Convert package-command associative array to a list of packages
+    local packages=("${!DEPENDENCIES[@]}") # Extracts the keys (package names) from the associative array
+
     # Install Steamcmd and other dependencies
-    sudo apt install screen psmisc procps steamcmd jq
+    sudo apt install -y "${packages[@]}"
 }
 
 # Uses a steamcmd config file where the sapiens appID is set. Despite the name, this can be used for a fresh install as well.
@@ -439,36 +486,16 @@ patch_steam(){
     fi
 }
 
-# Final summary of what was done.
-install_summary(){
-    #Get IP Address
-    IP_ADDRESS=$(ip addr show $(ip route show default | awk '/default/ {print $5}') | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}')
-
-    echo "---------------------------------------------------------------------"
-    echo "          Sapiens Dedicated Server Installation complete!"
-    echo ""
-    echo "Summary:"
-    echo ""
-    echo "Server Name: $SERVER_NAME"
-    echo "World Name: $WORLD_NAME"
-    echo "Local IP Address: $IP_ADDRESS"
-    echo "UDP Port: $UDP_PORT"
-    echo "Steam Port (UDP Port + 1): $STEAM_PORT"    
-    echo "HTTP Port: $HTTP_PORT"
-    echo "Server Publicly Advertised: $ADVERTISE"
-    echo "Multiplayer Server Entry: $SERVER_NAME - $WORLD_NAME"
-    echo "---------------------------------------------------------------------"
-    echo "If you intend to expose the server outside your network please ensure"
-    echo "you forward these ports on your router to this machine (IP Address $IP_ADDRESS)."
-    echo ""
-    echo "You can now control this world with the './sapiens.sh' command. Type"
-    echo "it to see options."
-}
-
 # Sets permissions so the management scripts can run.
 set_permissions(){
     # Make necessary scripts executable
     chmod +x sapiens.sh start.sh backuplogs.sh
+}
+
+# Checks to see if there is an active screen session, implying the server is up
+check_screen() {
+    # Check if a screen session with the specified name exists
+    screen -ls | grep -q "$SCREEN_NAME"
 }
 
 create_config() {
@@ -481,12 +508,12 @@ create_config() {
 #!/usr/bin/env bash
 
 #---------------------------------------------------------------------------------------------
-# WARNING! This file is regenerated by the install script to support the other scripts
-# so you shouldn't change the values in here. Please run ./install.sh if you want to 
-# change these values, select your existing world when found and fill in the values to change.
+# WARNING! This file is regenerated for the Sapiens Server Manager application. You
+# shouldn't change the values in here. Please run ./sapiens.sh if you want to 
+# change the configuration of the application.
 #---------------------------------------------------------------------------------------------
 
-VERSION="0.4.1" # Revision number of the script set
+VERSION="0.5.0" # Revision number of the script set
 
 # Variables set up during installation.  
 SCRIPT_DIR="$SCRIPT_DIR"        # Base dir where the scripts are located.
@@ -507,6 +534,7 @@ PROVIDE_LOGS="$PROVIDE_LOGS"
 GAME_DIR="$HOME/.local/share/Steam/steamcmd/sapiens"        # Where Steam installs the linuxServer executable
 SAPIENS_DIR="$HOME/.local/share/majicjungle/sapiens"        # Location where linuxServer stores data
 BACKUP_DIR="$HOME/sapiens-server/world_backups"             # Folder where the backup command will send your world archive
+PLAYERS_DIR="$SAPIENS_DIR/players"                          # Location of the players folder where the server files reside
 
 # World Locations
 WORLD_DIR="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID"
