@@ -3,6 +3,14 @@
 # Description: Script file to externalize a few of the functions.
 
 # Dependencies for the server to run and script to work
+    # Dependency List:
+    # -----------------------------------------------------------------------------------
+    # screen - Used to virtualize the server so the console doesn't need to remain open.
+    # psmisc - killall command.
+    # steamcmd - Steam commandline tool for installing the Sapiens server.
+    # jq - Allows reading json files.
+    # procps - process grep
+    # dialog - Console UI
 declare -A DEPENDENCIES=(
     [screen]=screen
     [psmisc]=killall
@@ -12,7 +20,7 @@ declare -A DEPENDENCIES=(
     [dialog]=dialog
 )
 
-#Inventory for our worlds.
+#Data structures to hold the installed world information.
 declare -a server_ids
 declare -a world_ids
 declare -a world_names
@@ -24,49 +32,40 @@ main_menu_ui() {
     local active_world_msg="Active World: ${WORLD_NAME:-'None Selected'}"
 
     local options=(
-        "1" "Manage Active World"
-        "2" "Select the Active World"
+        "1" "Manage the Active World"
+        "2" "Change the Active World"
         "3" "Create a New World"
         "4" "Update Sapiens Server From Steam"
         "5" "Reinstall Dependencies"
-        "6" "Exit"  # Adding an explicit exit option
+        "6" "Quit Sapiens Server Manager"  # Adding an explicit exit option
     )
     
-    local user_choice=$(whiptail --title "Sapiens Server Manager - $active_world_msg" --menu "Choose an option:" 20 78 6 "${options[@]}" 3>&1 1>&2 2>&3)
+    local user_choice=$(dialog --clear --title "Sapiens Server Manager - $active_world_msg" --menu "Choose an option:" 20 78 6 "${options[@]}" 3>&1 1>&2 2>&3)
 
     case $user_choice in
-        1)
-            manage_world_menu_ui
-            ;;
-        2)
+        1) manage_world_menu_ui ;;
+        2) 
             if refresh_worldlist; then
                 select_world_ui
                 setup_server_ui
             else
-                whiptail --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
+                dialog --clear --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
             fi
-            ;;
-        3)
-            create_world_ui
-            ;;
-        4)
-            upgrade_sapiens
-            ;;
-        5)
-            install_dependencies
-            ;;
-        6)
-            echo "Exiting application."
+        ;;
+        3) create_world_ui ;;
+        4) upgrade_sapiens ;;
+        5) install_dependencies ;;
+        6) 
             return 1  # Exit application
-            ;;
-        *)
-            if [ -z "$user_choice" ]; then
-                return 1  # Signal to exit application if user pressed ESC or Cancel
-            else
-                whiptail --msgbox "Invalid choice. Please try again." 8 45
-            fi
-            ;;
+        ;;
+        '') 
+            return 1  # Signal to exit application if user pressed ESC or Cancel
+        ;;
+        *) 
+            dialog --clear --msgbox "Invalid choice. Please try again." 8 45
+        ;;
     esac
+
     return 0
 }
 
@@ -74,56 +73,42 @@ main_menu_ui() {
 manage_world_menu_ui() {
     while true; do
         local options=(
-            "1" "Show Active World Info"
+            "1" "Open Console"
             "2" "Start Server"
             "3" "Restart Server"
             "4" "Stop Server"
             "5" "Hard Stop Server"
             "6" "Toggle Auto Restart"
             "7" "Backup Server"
-            "8" "Open Console"
+            "8" "Show Active World Info"
             "9" "Exit to Main Menu"
+            "10" "Quit Sapiens Server Manager"
         )
         
-        local user_choice=$(whiptail --title "Manage Active World - $WORLD_NAME" --menu "Select an operation for the active world:" 20 78 9 "${options[@]}" 3>&1 1>&2 2>&3)
+        local user_choice=$(dialog --clear --title "Manage Active World - $WORLD_NAME" --menu "Select an operation for the active world:" 20 78 10 "${options[@]}" 3>&1 1>&2 2>&3)
         
         case $user_choice in
-            1)
-                active_world_info_ui
-                ;;
-            2)
-                start_server
-                ;;
-            3)
-                restart_server
-                ;;
-            4)
-                stop_server
-                ;;
-            5)
-                hardstop_server
-                ;;
-            6)
-                auto_restart
-                ;;
-            7)
-                backup_server
-                ;;
-            8)
-                open_console
-                ;;
-            9)
-                # Exit to the main menu
+            1) open_console ;;
+            2) start_server ;;
+            3) restart_server ;;
+            4) stop_server ;;
+            5) hardstop_server ;;
+            6) auto_restart ;;
+            7) backup_server ;;
+            8) active_world_info_ui ;;
+            9) 
+                break ;;  # Exit to the main menu
+            10) 
+                clear
+                echo "Sapiens Server Manager exited..."
+                exit 0  # Exit the script cleanly
+            ;;
+            '')  # Handle ESC or empty input, equivalent to pressing 'Cancel'
                 break
-                ;;
-            *)
-                if [ -z "$user_choice" ]; then
-                    # If the user pressed ESC or Cancel, exit the loop
-                    break
-                else
-                    whiptail --msgbox "Invalid choice. Please try again." 8 45
-                fi
-                ;;
+            ;;
+            *)  # Handle invalid choice
+                dialog --clear --msgbox "Invalid choice. Please try again." 8 45
+            ;;
         esac
     done
 }
@@ -136,10 +121,10 @@ active_world_info_ui() {
 
     # Determine the values based on PROVIDE_LOGS
     case "$PROVIDE_LOGS" in
-        "--yes")
+        "--yes ")
             send_logs="Yes"
             ;;
-        "--yes-upload-world")
+        "--yes-upload-world ")
             send_logs="Yes"
             send_world="Yes"
             ;;
@@ -162,7 +147,7 @@ active_world_info_ui() {
     server_info+="you forward all 3 ports on your router to this machine (IP Address $IP_ADDRESS)."
 
     # Display the server information
-    whiptail --title "Active World Information" --msgbox "$server_info" 20 78
+    dialog --clear --title "Active World Information" --msgbox "$server_info" 20 78
 }
 
 # Function to display and select the active world
@@ -171,11 +156,11 @@ select_world_ui() {
 
     # Check the exit status of the last command
     if [ $? -ne 0 ]; then
-        whiptail --msgbox "No worlds found installed for $(whoami)." 10 50
+        dialog --clear --msgbox "No worlds found installed for $(whoami)." 10 50
         return 1  # Return an error code if refresh_worldlist failed
     fi
 
-    # Prepare a menu using whiptail with available worlds
+    # Prepare a menu using dialog with available worlds
     local options=()
     local max_length=0
     local line
@@ -197,7 +182,7 @@ select_world_ui() {
     fi
 
     # Display the menu
-    local selection=$(whiptail --menu "Choose a world to manage:" $height $width $menu_height "${options[@]}" 3>&1 1>&2 2>&3)
+    local selection=$(dialog --clear --menu "Choose a world to manage:" $height $width $menu_height "${options[@]}" 3>&1 1>&2 2>&3)
 
     # Handle the user's selection or cancellation
     if [ $? -eq 0 ] && [ -n "$selection" ]; then
@@ -208,7 +193,7 @@ select_world_ui() {
         echo "Selected World: $WORLD_NAME (Server ID: $SERVER_ID, World ID: $WORLD_ID)"
         return 0  # Valid selection
     else
-        whiptail --msgbox "No selection made or cancelled." 10 50
+        dialog --clear --msgbox "No selection made or cancelled." 10 50
         return 1  # User cancelled or closed the menu
     fi
 }
@@ -216,39 +201,39 @@ select_world_ui() {
 # Function to configure the active world
 setup_server_ui() {
     # Get the server name with a default value, defaulting to the existing SERVER_NAME or a placeholder
-    SERVER_NAME=$(whiptail --inputbox "Enter server name:" 10 60 "${SERVER_NAME:-'My Server Name'}" 3>&1 1>&2 2>&3)
+    SERVER_NAME=$(dialog --clear --inputbox "Enter server name:" 10 60 "${SERVER_NAME:-'My Server Name'}" 3>&1 1>&2 2>&3)
     SERVER_NAME=${SERVER_NAME:-"My Server Name"}
 
     # Ask if the server should be advertised with the default set to the existing value
-    if whiptail --yesno "Advertise server to the public in-game? Current setting: $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")" 10 60; then
+    if dialog --clear --yesno "Advertise server to the public in-game? Current setting: $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")" 10 60; then
         ADVERTISE="true"
     else
         ADVERTISE="false"
     fi
 
     # Ask if logs should be sent on crash
-    if whiptail --yesno "Do you want to send your log files to help fix bugs on a crash?" 10 60; then
-        PROVIDE_LOGS="--yes"
+    if dialog --clear --yesno "Do you want to send your log files to help fix bugs on a crash?" 10 60; then
+        PROVIDE_LOGS="--yes "
         # Ask if world data should also be sent
-        if whiptail --yesno "Do you also want to send a copy of your world (can take long for large worlds)?" 10 60; then
-            PROVIDE_LOGS="--yes-upload-world"
+        if dialog --clear --yesno "Do you also want to send a copy of your world (can take long for large worlds)?" 10 60; then
+            PROVIDE_LOGS="--yes-upload-world "
         fi
     else
         PROVIDE_LOGS=""
     fi
 
     # Get the UDP port, using the existing UDP_PORT if not provided
-    UDP_PORT=$(whiptail --inputbox "Enter UDP Port:" 10 60 "$UDP_PORT" 3>&1 1>&2 2>&3)
+    UDP_PORT=$(dialog --clear --inputbox "Enter UDP Port:" 10 60 "$UDP_PORT" 3>&1 1>&2 2>&3)
     UDP_PORT=${UDP_PORT:-$UDP_PORT}
 
     # Calculate the Steam port, which is UDP port + 1
     STEAM_PORT=$((UDP_PORT + 1))
 
     # Get the HTTP port, using the existing HTTP_PORT if not provided, and ensure it does not conflict with the Steam port
-    HTTP_PORT=$(whiptail --inputbox "Enter HTTP Port:" 10 60 "$HTTP_PORT" 3>&1 1>&2 2>&3)
+    HTTP_PORT=$(dialog --clear --inputbox "Enter HTTP Port:" 10 60 "$HTTP_PORT" 3>&1 1>&2 2>&3)
     HTTP_PORT=${HTTP_PORT:-$HTTP_PORT}
     while [ "$STEAM_PORT" -eq "$HTTP_PORT" ]; do
-        HTTP_PORT=$(whiptail --inputbox "Conflict detected: HTTP port ($HTTP_PORT) cannot be the same as Steam port ($STEAM_PORT). Enter a different HTTP Port:" 10 60 "$HTTP_PORT" 3>&1 1>&2 2>&3)
+        HTTP_PORT=$(dialog --clear --inputbox "Conflict detected: HTTP port ($HTTP_PORT) cannot be the same as Steam port ($STEAM_PORT). Enter a different HTTP Port:" 10 60 "$HTTP_PORT" 3>&1 1>&2 2>&3)
     done
 
     # Rewrite the config file
@@ -260,8 +245,8 @@ setup_server_ui() {
 
 # Create a new Sapiens world via linuxServer --new
 create_world_ui() {
-    # Prompt for the world name using whiptail
-    WORLD_NAME=$(whiptail --inputbox "Enter the name for the new world (or leave empty for 'Nameless Sapiens World'):" 10 60 3>&1 1>&2 2>&3)
+    # Prompt for the world name
+    WORLD_NAME=$(dialog --clear --inputbox "Enter the name for the new world (or leave empty for 'Nameless Sapiens World'):" 10 60 3>&1 1>&2 2>&3)
     
     # Default the world name if none is provided
     if [ -z "$WORLD_NAME" ]; then
@@ -282,11 +267,11 @@ create_world_ui() {
             echo 75
             sleep 1
             echo 100
-            whiptail --msgbox "Failed to create world. Please try again." 10 50
+            dialog --clear --msgbox "Failed to create world. Please try again." 10 50
             return 1
         fi
         echo 100
-    } | whiptail --gauge "Please wait, creating the world..." 6 50 0
+    } | dialog --clear --gauge "Please wait, creating the world..." 6 50 0
 
     # Attempt to retrieve the WORLD_ID of the new world
     base_dir="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds"
@@ -303,9 +288,9 @@ create_world_ui() {
 
     # Validate if WORLD_ID was successfully retrieved
     if [[ -z "$WORLD_ID" ]]; then
-        whiptail --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
+        dialog --clear --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
     else
-        whiptail --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now configure this world in the main menu." 10 70
+        dialog --clear --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now select it as the active world in the main menu." 10 70
     fi
 }
 
@@ -323,6 +308,111 @@ check_for_root() {
         echo "git clone https://github.com/ChillGenXer/sapiens-server.git"
         exit 1
     fi
+}
+
+# Checks to see if there is an active screen session, implying the server is up
+check_screen() {
+    # Check if a screen session with the specified name exists
+    screen -ls | grep -q "$SCREEN_NAME"
+    return $?  # Explicitly return the exit code of the grep command
+}
+
+# Open the screen session to see the server console
+open_console() {
+    # Call check_screen to see if the screen session exists
+    if check_screen; then
+        # If a screen session is found, resume it
+        dialog --clear --msgbox "You are about to open the console for $WORLD_NAME.  Once open, to exit the console without stopping the server hold CTRL then press A + D." 10 70
+        screen -r $SCREEN_NAME
+    else
+        # Let the user know.
+        dialog --clear --msgbox "The console for $WORLD_NAME was not found [screen=$SCREEN_NAME]. Please start the server first." 10 70
+    fi
+}
+
+# Starts the dedicated server in a screen session
+start_server() {
+    check_screen
+    if [ $? -eq 0 ]; then
+        # Prompt user, looks like it is already running
+        if (dialog --clear --title "Server Console" --yesno "It appears there is already a Sapiens server running. Do you want to open the server console instead?" 10 60) then
+            open_console
+        fi
+    else
+        #./start.sh         # For testing
+        screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
+        dialog --clear --msgbox "Sapiens world '$WORLD_NAME' has been started!" 10 50
+    fi
+}
+
+stop_server() {
+    local silent_mode=$1  # Accepts an argument to determine silent mode
+
+    if pgrep -x "linuxServer" > /dev/null; then
+        killall linuxServer
+        if [ "$silent_mode" != "silent" ]; then
+            dialog --clear --msgbox "'$WORLD_NAME' has been stopped. If you intend to keep it stopped, please run ./sapiens.sh hardstop to keep it from restarting." 10 50
+        fi
+    else
+        if [ "$silent_mode" != "silent" ]; then
+            dialog --clear --msgbox "'$WORLD_NAME' was already stopped." 10 50
+        fi
+    fi
+}
+
+#Stop the server, and cancel the restart timer
+hardstop_server(){
+    if pgrep -x "linuxServer" > /dev/null; then
+        killall linuxServer
+    fi
+    auto_restart "0" 
+    dialog --clear --msgbox "'$WORLD_NAME' has been stopped and autorestart cancelled." 10 50
+}
+
+# Set a cronjob to restart the Sapiens server.
+auto_restart() {
+    local interval=$1
+    
+    # Check if no parameter is given and prompt for it
+    if [[ -z "$interval" ]]; then
+        interval=$(dialog --stdout --clear --title "Auto-Restart Interval" --inputbox "Enter the auto-restart interval in minutes:" 10 60)
+        
+        # Check if user canceled the input box
+        if [[ -z "$interval" ]]; then
+            dialog --clear --msgbox "Auto-restart setting unchanged." 10 50
+            return 1  # Exit the function if no input was given
+        fi
+    fi
+
+    # Validate the input or provided parameter
+    if [[ "$interval" == "0" ]]; then
+        # Remove the existing cron job if the interval is set to 0
+        (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart") | crontab -
+        dialog --clear --msgbox "Auto-restart has been disabled." 10 50
+    elif [[ "$interval" =~ ^[0-9]+$ ]]; then
+        CRON_JOB="*/$interval * * * * $SCRIPT_DIR/sapiens.sh restart"
+        (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart"; echo "$CRON_JOB") | crontab -
+        dialog --clear --msgbox "$WORLD_NAME will restart every $interval minutes." 10 70
+    else
+        dialog --clear --msgbox "Error: Interval must be a number" 10 50
+        exit 1
+    fi
+}
+
+# Function to backup the world folder to the specified backup directory.
+backup_server() {
+    # TODO Error handling
+    # Ensure that the server is stopped.
+    stop_server silent
+
+    echo "Backing up the world '$WORLD_NAME'..."
+    TIMESTAMP=$(date +%Y%m%d%H%M%S)
+    BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
+    cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
+    # Archive the specific world directory, including its name in the archive
+    tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
+
+    dialog --clear --msgbox "'$WORLD_NAME' has been backed up.  Don't forget to restart your world." 10 70
 }
 
 # Function to refresh and check world list
@@ -434,15 +524,6 @@ get_dependency_status() {
 
 # Install the required dependencies.
 install_dependencies(){
-    # Dependency List:
-    # -----------------------------------------------------------------------------------
-    # screen - Used to virtualize the server so the console doesn't need to remain open.
-    # psmisc - killall command.
-    # steamcmd - Steam commandline tool for installing the Sapiens server.
-    # jq - Allows reading json files.
-    # procps - process grep
-    # dialog - Console UI
-
     echo ""
     echo "Installing dependencies..."
     echo ""
@@ -491,12 +572,6 @@ patch_steam(){
 set_permissions(){
     # Make necessary scripts executable
     chmod +x sapiens.sh start.sh backuplogs.sh
-}
-
-# Checks to see if there is an active screen session, implying the server is up
-check_screen() {
-    # Check if a screen session with the specified name exists
-    screen -ls | grep -q "$SCREEN_NAME"
 }
 
 create_config() {

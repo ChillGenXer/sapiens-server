@@ -38,6 +38,7 @@ start_server() {
                 ;;
         esac
     else
+        #./start.sh         # For testing
         screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
         echo "Sapiens world '$WORLD_NAME' started in the background. View the console with ./sapiens.sh console."
     fi
@@ -90,7 +91,7 @@ open_console() {
         screen -r $SCREEN_NAME
     else
         # Let the user know.
-        echo "The console for $WORLD_NAME was not found [screen=$SCREEN_NAME]. Please start the server first."
+        whiptail --msgbox "The console for $WORLD_NAME was not found [screen=$SCREEN_NAME]. Please start the server first." 10 50
     fi
 }
 

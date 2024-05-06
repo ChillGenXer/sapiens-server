@@ -11,6 +11,9 @@ if ! source functions.sh; then
     exit 1
 fi
 
+# Set a trap to clear the screen when exiting
+trap "clear" EXIT
+
 # Check if the script is running as root
 check_for_root
 
@@ -65,7 +68,8 @@ while true; do
     main_menu_ui
     case $? in
         1)  # Exit the application
-            echo "Closing Sapiens Server manager.  Control your server with the ./sapiens.sh command."
+            clear
+            echo "Sapiens Server Manager exited."
             break
             ;;
         *)  # For all other cases, loop back to the main menu
