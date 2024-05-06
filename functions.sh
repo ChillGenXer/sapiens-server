@@ -466,6 +466,7 @@ upgrade_sapiens(){
     steamcmd +runscript ~/sapiens-server/steamupdate.txt
 }
 
+# A little hack to fix the location of the steam client
 patch_steam(){
     echo "Patching mislocated steamclient.so..."
 
