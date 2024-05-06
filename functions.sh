@@ -24,8 +24,115 @@ check_for_root() {
     fi
 }
 
+# This function acts as the entry point and controls the flow of the menu system.
+start_application() {
+    while true; do
+        clear
+        main_menu
+        case $? in
+            1)  # Exit the application
+                echo "Closing Sapiens Server manager.  Control your server with the ./sapiens.sh command."
+                break
+                ;;
+            *)  # For all other cases, loop back to the main menu
+                ;;
+        esac
+    done
+}
+
+main_menu() {
+    local options=(
+        "1" "Launch/Reconfigure an Existing World"
+        "2" "Create a New World"
+        "3" "Update Sapiens Server From Steam"
+        "4" "Reinstall Dependencies"
+        "5" "Exit"  # Adding an explicit exit option
+    )
+    
+    local user_choice=$(whiptail --title "Sapiens Server Manager" --menu "Choose an option:" 15 60 5 "${options[@]}" 3>&1 1>&2 2>&3)
+
+    case $user_choice in
+        1)
+            if refresh_worldlist; then
+                manage_worlds
+            else
+                whiptail --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
+            fi
+            ;;
+        2)
+            create_world_ui
+            ;;
+        3)
+            upgrade_sapiens
+            ;;
+        4)
+            install_dependencies
+            ;;
+        5)
+            echo "Exiting application."
+            return 1  # Exit application
+            ;;
+        *)
+            if [ -z "$user_choice" ]; then
+                return 1  # Signal to exit application if user pressed ESC or Cancel
+            else
+                whiptail --msgbox "Invalid choice. Please try again." 8 45
+            fi
+            ;;
+    esac
+    return 0
+}
+
+# Function to display and select a world from the list using whiptail
+manage_worlds() {
+    refresh_worldlist
+
+    # Check the exit status of the last command
+    if [ $? -ne 0 ]; then
+        whiptail --msgbox "No worlds found installed for $(whoami)." 10 50
+        return 1  # Return an error code if refresh_worldlist failed
+    fi
+
+    # Prepare a menu using whiptail with available worlds
+    local options=()
+    local max_length=0
+    local line
+    local index=1  # Initialize index for options array
+    for line in "${display_lines[@]}"; do
+        options+=("$index" "$line")
+        (( ${#line} > max_length )) && max_length=${#line}
+        ((index++))
+    done
+
+    # Calculate the appropriate width based on the longest line
+    local width=$(( max_length + 10 ))  # Add some padding to the max length
+    local height=$(( ${#options[@]} / 2 + 8 ))
+    local menu_height=$(( height - 8 ))
+
+    # Check if width is less than minimum width
+    if [[ $width -lt 70 ]]; then
+        width=70
+    fi
+
+    # Display the menu
+    local selection=$(whiptail --menu "Choose a world to manage:" $height $width $menu_height "${options[@]}" 3>&1 1>&2 2>&3)
+
+    # Handle the user's selection or cancellation
+    if [ $? -eq 0 ] && [ -n "$selection" ]; then
+        local actual_index=$((selection))
+        SERVER_ID="${server_ids[$actual_index]}"
+        WORLD_ID="${world_ids[$actual_index]}"
+        WORLD_NAME="${world_names[$actual_index]}"
+        echo "Selected World: $WORLD_NAME (Server ID: $SERVER_ID, World ID: $WORLD_ID)"
+        return 0  # Valid selection
+    else
+        whiptail --msgbox "No selection made or cancelled." 10 50
+        return 1  # User cancelled or closed the menu
+    fi
+}
+
 # Function to refresh and check world list
-refresh_world_list() {
+refresh_worldlist() {
     local server_dir world_dir
     local counter=1
     local world_found=false
@@ -55,29 +162,6 @@ refresh_world_list() {
     else
         return 1  # Error: no worlds found
     fi
-}
-
-# Function to select a world from the list
-select_world() {
-    local selection counter=${#display_lines[@]}
-
-    for line in "${display_lines[@]}"; do
-        echo "$line"
-    done
-
-    while true; do
-        echo "Enter the number corresponding to the world you want:"
-        read selection
-
-        if [[ $selection -ge 1 && $selection -le $counter ]]; then
-            SERVER_ID="${server_ids[$selection]}"
-            WORLD_ID="${world_ids[$selection]}"
-            WORLD_NAME="${world_names[$selection]}"
-            return 0  # Valid selection
-        else
-            echo "Invalid selection. Please try again."
-        fi
-    done
 }
 
 # Function to center text based on terminal width
@@ -293,6 +377,56 @@ patch_steam(){
     fi
 }
 
+create_world_ui() {
+    # Prompt for the world name using whiptail
+    WORLD_NAME=$(whiptail --inputbox "Enter the name for the new world (or leave empty for 'Nameless Sapiens World'):" 10 60 3>&1 1>&2 2>&3)
+    
+    # Default the world name if none is provided
+    if [ -z "$WORLD_NAME" ]; then
+        WORLD_NAME="Nameless Sapiens World"
+    fi
+
+    # Show a gauge while the world is being created
+    {
+        echo 10
+        sleep 1
+        $HOME/.local/share/Steam/steamcmd/sapiens/linuxServer --server-id "$SERVER_ID" --new "$WORLD_NAME" >/dev/null 2>&1 &
+        pid=$!
+        echo 50
+        sleep 5  # Simulate some progress
+        kill $pid  # Intending to stop the background process as per your original function
+        sleep 2
+        if kill -0 $pid 2>/dev/null; then
+            echo 75
+            sleep 1
+            echo 100
+            whiptail --msgbox "Failed to create world. Please try again." 10 50
+            return 1
+        fi
+        echo 100
+    } | whiptail --gauge "Please wait, creating the world..." 6 50 0
+
+    # Attempt to retrieve the WORLD_ID of the new world
+    base_dir="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds"
+    for world_dir in "$base_dir"/*; do
+        info_json="$world_dir/info.json"
+        if [[ -f "$info_json" ]]; then
+            current_world_name=$(jq -r '.value0.worldName' "$info_json")
+            if [[ "$current_world_name" == "$WORLD_NAME" ]]; then
+                WORLD_ID=$(basename "$world_dir")
+                break
+            fi
+        fi
+    done
+
+    # Validate if WORLD_ID was successfully retrieved
+    if [[ -z "$WORLD_ID" ]]; then
+        whiptail --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
+    else
+        whiptail --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now configure this world in the main menu." 10 70
+    fi
+}
+
 # Create a new world on the server.
 create_world(){
     # Get the PID of the background process and wait.
@@ -424,4 +558,3 @@ SERVERLOG_LOG="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/
 WORLD_LOGS_DIR="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/logs"
 EOF
 }
-
