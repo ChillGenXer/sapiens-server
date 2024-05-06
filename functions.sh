@@ -332,19 +332,26 @@ open_console() {
 
 # Starts the dedicated server in a screen session
 start_server() {
+    local silent_mode=$1  # Accepts an argument to determine silent mode
+
     check_screen
     if [ $? -eq 0 ]; then
-        # Prompt user, looks like it is already running
-        if (dialog --clear --title "Server Console" --yesno "It appears there is already a Sapiens server running. Do you want to open the server console instead?" 10 60) then
-            open_console
+        # Server is already running
+        if [ "$silent_mode" != "silent" ]; then
+            if (dialog --clear --title "Server Console" --yesno "It appears there is already a Sapiens server running. Do you want to open the server console instead?" 10 60) then
+                open_console
+            fi
         fi
     else
-        #./start.sh         # For testing
+        # Start the server in a detached screen
         screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
-        dialog --clear --msgbox "Sapiens world '$WORLD_NAME' has been started!" 10 50
+        if [ "$silent_mode" != "silent" ]; then
+            dialog --clear --msgbox "Sapiens world '$WORLD_NAME' has been started!" 10 50
+        fi
     fi
 }
 
+# Stop the running server
 stop_server() {
     local silent_mode=$1  # Accepts an argument to determine silent mode
 
@@ -357,6 +364,20 @@ stop_server() {
         if [ "$silent_mode" != "silent" ]; then
             dialog --clear --msgbox "'$WORLD_NAME' was already stopped." 10 50
         fi
+    fi
+}
+
+# Stop and start a running server.
+restart_server() {
+    local silent_mode=$1  # Accepts an argument to determine silent mode
+    if [ "$silent_mode" != "silent" ]; then
+        stop_server silent
+        sleep 5  # wait for the server to shut down gracefully
+        start_server silent
+    else
+        stop_server
+        sleep 5  # wait for the server to shut down gracefully
+        start_server
     fi
 }
 
