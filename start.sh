@@ -18,8 +18,8 @@ while true; do
     # TODO: This is cludgy, you need to fix this up.
     cd $GAME_DIR
     if [ "$ADVERTISE" == "true" ]; then
-        echo "./linuxServer $PROVIDE_LOGS--advertise '$SERVER_NAME' --server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'"
-        ./linuxServer $PROVIDE_LOGS--advertise "$SERVER_NAME" --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
+        echo "./linuxServer $PROVIDE_LOGS--advertise --server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'"
+        ./linuxServer $PROVIDE_LOGS--advertise --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
         status=$?
     else
         echo "./linuxServer $PROVIDE_LOGS--server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'"
