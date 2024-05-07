@@ -390,7 +390,7 @@ create_config() {
 # change these values, select your existing world when found and fill in the values to change.
 #---------------------------------------------------------------------------------------------
 
-VERSION="0.4.1" # Revision number of the script set
+VERSION="0.4.3" # Revision number of the script set
 
 # Variables set up during installation.  
 SCRIPT_DIR="$SCRIPT_DIR"        # Base dir where the scripts are located.

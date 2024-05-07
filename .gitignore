@@ -1,3 +1,5 @@
 config.sh
 scrapbook.sh
 test.sh
+log_backups/
+world_backups/

@@ -45,12 +45,17 @@ start_server() {
 
 #Function to kill all running Sapiens Dedicated Server processes and backup the log files.
 stop_server() {
+    # Attempt to do it cleanly.
+    screen -S $SCREEN_NAME -X stuff 'stop^M'
+
+    sleep 5
+
+    # Check if it's really down, and if not kill the process.
     if pgrep -x "linuxServer" > /dev/null; then
         killall linuxServer
-        echo "'$WORLD_NAME' has been stopped.  If you intend to keep it stopped, please run ./sapiens.sh hardstop to keep it from restarting."
-    else
-        echo "'$WORLD_NAME' was already stopped."
     fi
+
+    echo "'$WORLD_NAME' has been stopped.  If you intend to keep it stopped, please run ./sapiens.sh hardstop to keep it from restarting."
 }
 
 #Stop the server, and cancel the restart timer
@@ -94,19 +99,19 @@ open_console() {
     fi
 }
 
-# Set a cronjob to restart the Sapiens server.
+# Set a cronjob to restart the Sapiens server at specified hourly intervals or disable the restart.
 auto_restart() {
     if [[ "$1" == "0" ]]; then
         # Remove the existing cron job if the interval is set to 0
         (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart") | crontab -
         echo "Auto-restart has been disabled."
-    elif [[ "$1" =~ ^[0-9]+$ ]]; then
+    elif [[ "$1" =~ ^[1-9]$|^1[0-9]$|^2[0-4]$ ]]; then
         INTERVAL="$1"
-        CRON_JOB="*/$INTERVAL * * * * $SCRIPT_DIR/sapiens.sh restart"
+        CRON_JOB="0 */$INTERVAL * * * $SCRIPT_DIR/sapiens.sh restart"
         (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart"; echo "$CRON_JOB") | crontab -
-        echo "$WORLD_NAME will restart every $INTERVAL minutes."
+        echo "$WORLD_NAME will restart every $INTERVAL hour(s)."
     else
-        echo "Error: Interval must be a number"
+        echo "Error: Interval must be a number of hours between 1 and 24 or 0 to disable."
         exit 1
     fi
 }
@@ -148,7 +153,7 @@ case $1 in
         echo "./sapiens.sh console - Bring the running world's console. To exit without stopping the server hold CTRL and type A D."        
         echo "./sapiens.sh stop - stops your world."
         echo "./sapiens.sh restart - Manually restart the server. Good to use if things are getting laggy."
-        echo "./sapiens.sh autorestart [minutes] - Automatically restart the world at the specified interval."
+        echo "./sapiens.sh autorestart [hours] - Automatically restart the world at the specified hour interval."
         echo "./sapiens.sh upgrade - This will update you to the latest version of the Sapiens server."
         echo "./sapiens.sh backup - Stops the world and backs it up to the backup folder."
 

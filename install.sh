@@ -30,6 +30,20 @@ if ! source functions.sh; then
     exit 1
 fi
 
+# Define the directory names
+directories=("log_backups" "world_backups")
+
+# Loop through each directory to check and create if necessary
+for dir in "${directories[@]}"; do
+    if [ ! -e "$dir" ]; then
+        # If the directory does not exist, create it
+        echo "Creating directory: $dir"
+        mkdir "$dir"
+    else
+        echo "Directory exists: $dir"
+    fi
+done
+
 # Splash text to start the interaction with the user.
 splash_text
 
