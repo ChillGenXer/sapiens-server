@@ -191,10 +191,10 @@ get_multiplayer_details(){
     if ask_yes_no "If you don't mind helping the developer to fix bugs in Sapiens, do you want to send your log files on a crash?"; then
         PROVIDE_LOGS="--yes "
         echo "Log reporting Enabled."
-        if ask_yes_no "Do you also want to send a copy of your world (can take long for large worlds)?"; then
-            PROVIDE_LOGS="--yes-upload-world "
-            echo"Log reporting + world send Enabled."
-        fi
+ #       if ask_yes_no "Do you also want to send a copy of your world (can take long for large worlds)?"; then
+ #           PROVIDE_LOGS="--yes-upload-world "
+ #           echo"Log reporting + world send Enabled."
+ #       fi
     else
         PROVIDE_LOGS=""
         echo "No reports will be sent to the developer on a crash."
