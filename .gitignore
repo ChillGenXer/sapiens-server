@@ -1,3 +1,5 @@
+.gitignore
 config.sh
 scrapbook.sh
 test.sh
+no-restart.flag

@@ -333,8 +333,10 @@ open_console() {
 # Starts the dedicated server in a screen session
 start_server() {
     local silent_mode=$1  # Accepts an argument to determine silent mode
+    rm "no-restart.flag" 
 
     check_screen
+    
     if [ $? -eq 0 ]; then
         # Server is already running
         if [ "$silent_mode" != "silent" ]; then
@@ -344,6 +346,7 @@ start_server() {
         fi
     else
         # Start the server in a detached screen
+        #./start.sh
         screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
         if [ "$silent_mode" != "silent" ]; then
             dialog --clear --msgbox "Sapiens world '$WORLD_NAME' has been started!" 10 50
@@ -351,22 +354,35 @@ start_server() {
     fi
 }
 
-# Stop the running server
+# Stop the running server and ensure the screen session is terminated
 stop_server() {
     local silent_mode=$1  # Accepts an argument to determine silent mode
 
+    # First, stop the server processes using the usual method
     if pgrep -x "linuxServer" > /dev/null; then
+        touch "no-restart.flag"  # Set a flag to prevent restart in start.sh
         killall linuxServer
+        
+        # Provide user feedback if not in silent mode
         if [ "$silent_mode" != "silent" ]; then
-            dialog --clear --msgbox "'$WORLD_NAME' has been stopped. If you intend to keep it stopped, please run ./sapiens.sh hardstop to keep it from restarting." 10 50
+            dialog --clear --msgbox "'$WORLD_NAME' has been stopped. If you intend to keep it stopped until you manually start it again, please do a hard stop from the menu." 10 50
         fi
     else
         if [ "$silent_mode" != "silent" ]; then
             dialog --clear --msgbox "'$WORLD_NAME' was already stopped." 10 50
         fi
     fi
-}
 
+    # Check and terminate the screen session if it exists
+    if screen -list | grep -q "$SCREEN_NAME"; then
+        screen -S "$SCREEN_NAME" -X quit
+
+        # Provide feedback about screen termination
+        if [ "$silent_mode" != "silent" ]; then
+            dialog --clear --msgbox "Screen session '$SCREEN_NAME' has been terminated." 10 50
+        fi
+    fi
+}
 # Stop and start a running server.
 restart_server() {
     local silent_mode=$1  # Accepts an argument to determine silent mode
