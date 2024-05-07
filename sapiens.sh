@@ -11,6 +11,12 @@ if ! source functions.sh; then
     exit 1
 fi
 
+# Source the servercmd file
+if ! source servercmd.sh; then
+    echo "Error: Failed to source servercmd.sh. Ensure the file exists in the script directory and is readable."
+    exit 1
+fi
+
 # Set a trap to clear the screen when exiting
 trap "clear" EXIT
 
