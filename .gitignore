@@ -1,5 +1,6 @@
-.gitignore
 config.sh
 scrapbook.sh
 test.sh
 no-restart.flag
+log_backups/*.tar.gz
+world_backups/*.tar.gz

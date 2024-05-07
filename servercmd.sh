@@ -96,32 +96,19 @@ hardstop_server(){
     dialog --clear --msgbox "'$WORLD_NAME' has been stopped and autorestart cancelled." 10 50
 }
 
-# Set a cronjob to restart the Sapiens server.
+# Set a cronjob to restart the Sapiens server at specified hourly intervals or disable the restart.
 auto_restart() {
-    local interval=$1
-    
-    # Check if no parameter is given and prompt for it
-    if [[ -z "$interval" ]]; then
-        interval=$(dialog --stdout --clear --title "Auto-Restart Interval" --inputbox "Enter the auto-restart interval in minutes:" 10 60)
-        
-        # Check if user canceled the input box
-        if [[ -z "$interval" ]]; then
-            dialog --clear --msgbox "Auto-restart setting unchanged." 10 50
-            return 1  # Exit the function if no input was given
-        fi
-    fi
-
-    # Validate the input or provided parameter
-    if [[ "$interval" == "0" ]]; then
+    if [[ "$1" == "0" ]]; then
         # Remove the existing cron job if the interval is set to 0
         (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart") | crontab -
-        dialog --clear --msgbox "Auto-restart has been disabled." 10 50
-    elif [[ "$interval" =~ ^[0-9]+$ ]]; then
-        CRON_JOB="*/$interval * * * * $SCRIPT_DIR/sapiens.sh restart"
+        echo "Auto-restart has been disabled."
+    elif [[ "$1" =~ ^[1-9]$|^1[0-9]$|^2[0-4]$ ]]; then
+        INTERVAL="$1"
+        CRON_JOB="0 */$INTERVAL * * * $SCRIPT_DIR/sapiens.sh restart"
         (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart"; echo "$CRON_JOB") | crontab -
-        dialog --clear --msgbox "$WORLD_NAME will restart every $interval minutes." 10 70
+        echo "$WORLD_NAME will restart every $INTERVAL hour(s)."
     else
-        dialog --clear --msgbox "Error: Interval must be a number" 10 50
+        echo "Error: Interval must be a number of hours between 1 and 24 or 0 to disable."
         exit 1
     fi
 }
