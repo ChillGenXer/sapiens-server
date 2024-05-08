@@ -2,9 +2,11 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Script file to externalize server interaction functions.
 
-#Server state object
-declare -A SERVER_STATE=(
-)
+# Data structures to hold the installed world information.
+declare -a server_ids
+declare -a world_ids
+declare -a world_names
+declare -a display_lines
 
 # Open the screen session to see the server console
 open_console() {
@@ -135,4 +137,43 @@ server_status() {
     # Check if a screen session with the specified name exists
     screen -ls | grep -q "$SCREEN_NAME"
     return $?  # Explicitly return the exit code of the grep command
+}
+
+# Send a chat message to the server
+send_server_message(){
+    local message = $1
+    screen -S "$SCREEN_SESSION" -p 0 -X stuff $'server:callClientFunctionForAllClients("chatMessageRecieved", {text="'$message'", clientName = "Server"})\r'
+}
+
+# Function to refresh and check world list
+refresh_worldlist() {
+    local server_dir world_dir
+    local counter=1
+    local world_found=false
+
+    for server_dir in "$PLAYERS_DIR"/*; do
+        if [ -d "$server_dir/worlds" ]; then
+            for world_dir in "$server_dir/worlds"/*; do
+                if [ -d "$world_dir" ] && [ -f "$world_dir/info.json" ]; then
+                    world_found=true
+                    local server_id=$(basename "$server_dir")
+                    local world_id=$(basename "$world_dir")
+                    local world_name=$(jq -r '.value0.worldName' "$world_dir/info.json")
+
+                    server_ids[counter]=$server_id
+                    world_ids[counter]=$world_id
+                    world_names[counter]="$world_name"
+                    display_lines[counter]="    $counter. World Name: $world_name, World ID: $world_id"
+
+                    ((counter++))
+                fi
+            done
+        fi
+    done
+
+    if [ "$world_found" = true ]; then
+        return 0  # Success: at least one world found
+    else
+        return 1  # Error: no worlds found
+    fi
 }
