@@ -4,10 +4,8 @@
 # Description: Sapiens Server Manager.
 
 # Source the required files
-# List of files to source
-required_files=("bootstrap.sh" "functions.sh" "servercmd.sh")
+required_files=("bootstrap.sh" "ui_functions.sh" "servercmd.sh")
 
-# Source the required files
 for file in "${required_files[@]}"; do
     if ! source "$file"; then
         echo "Error: Failed to source $file. Ensure the file exists in the script directory and is readable."
@@ -15,9 +13,10 @@ for file in "${required_files[@]}"; do
     fi
 done
 
+# Do initial checks to see if something needs to be installed.
 startup_sequence    # From bootstrap.sh
 
-# Argument Handling - checks if any argument is provided
+# Commandline argument handling or main UI loop?
 if [ "$#" -gt 0 ]; then
     if [ "$1" == "restart" ]; then
         restart_server silent
@@ -32,8 +31,7 @@ else
         main_menu_ui
         case $? in
             1)  # Exit the application
-                clear
-                echo "Sapiens Server Manager exited."
+                shutdown_sequence
                 break
                 ;;
             *)  # For all other cases, loop back to the main menu

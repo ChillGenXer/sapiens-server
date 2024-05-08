@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: Script file to externalize a few of the functions.
+# Description: Script file library for the UI functions.
 
 # Application Main Menu
 main_menu_ui() {
