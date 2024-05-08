@@ -3,23 +3,17 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Sapiens Server Manager.
 
-# Source the bootstrap file
-if ! source bootstrap.sh; then
-    echo "Error: Failed to source bootstrap.sh. Ensure the file exists in the script directory and is readable."
-    exit 1
-fi
+# Source the required files
+# List of files to source
+required_files=("bootstrap.sh" "functions.sh" "servercmd.sh")
 
-# Source the functions file
-if ! source functions.sh; then
-    echo "Error: Failed to source functions.sh. Ensure the file exists in the script directory and is readable."
-    exit 1
-fi
-
-# Source the servercmd file
-if ! source servercmd.sh; then
-    echo "Error: Failed to source servercmd.sh. Ensure the file exists in the script directory and is readable."
-    exit 1
-fi
+# Source the required files
+for file in "${required_files[@]}"; do
+    if ! source "$file"; then
+        echo "Error: Failed to source $file. Ensure the file exists in the script directory and is readable."
+        exit 1
+    fi
+done
 
 startup_sequence    # From bootstrap.sh
 
