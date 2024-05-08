@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: Sapiens Server Manager.
+# Description: Sapiens Server Manager main application script.  This script basically sources the required
+# library files, runs the startup sequence to see if everything needed is installed, and then either
+# handles a command line request or starts the application UI.
 
 # Source the required files
-required_files=("bootstrap.sh" "ui_functions.sh" "servercmd.sh")
+required_files=("bootstrap.sh" "ui_functions.sh" "manage_server.sh" "manage_worlds.sh")
 
 for file in "${required_files[@]}"; do
     if ! source "$file"; then

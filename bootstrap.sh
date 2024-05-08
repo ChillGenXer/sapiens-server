@@ -6,7 +6,9 @@
 CONFIG_FILE="config.sh"
 VERSION="0.5.0"
 
-# Array of dependencies for the server to run and needed by the script to work
+# Array of dependencies for the server to run and needed by the script to work.  It is in an array for clarity
+# with the cell name being the actual package name for use in apt package manager, while the value is the command
+# used to check if the package is present.
 declare -A DEPENDENCIES=(
     [screen]=screen         # Used to virtualize the server so the console doesn't need to remain open.
     [psmisc]=killall        # Needed for the killall command
@@ -34,18 +36,13 @@ startup_sequence(){
 
     # Check if all required dependencies are installed
     if ! get_dependency_status; then
-        if echo "The account $(whoami) does not have the necessary software installed to run a Sapiens Server. Beginning installation..."; then
+        echo "The account $(whoami) does not have the necessary software installed to run a Sapiens Server. Beginning installation..."
 
-            install_dependencies    # Install Steamcmd and a few needed utilities
-            patch_steam             # Patch for the steam client.
-            upgrade_sapiens         # Use steamcmd to update the sapiens executable.
+        install_dependencies    # Install Steamcmd and the other required dependencies
+        patch_steam             # Patch for the steam client.
+        upgrade_sapiens         # Use steamcmd to update the sapiens executable.
 
-            dialog --msgbox "Installation Successfully Complete!" 0 0
-        else
-            # User chose not to continue
-            echo "Installation aborted. Exiting now."
-            exit 1
-        fi
+        dialog --msgbox "Sapiens Server Manager installation successfully complete!" 0 0
     fi
 }
 
@@ -53,8 +50,9 @@ startup_sequence(){
 shutdown_sequence() {
     clear
     echo "Sapiens Server Manager Version $VERSION" 
-    echo "Thanks for using Sapien Server Manager.  If you have any issues"
+    echo "Thanks for using Sapien Server Manager!  If you encounter any issues"
     echo "please raise them at https://github.com/ChillGenXer/sapiens-server/issues ."
+    echo ""
 }
 
 # This function checks to make sure that the user is not using "root" to install the server.
@@ -203,6 +201,7 @@ set_permissions(){
 
 #Generate a configuration file
 create_config() {
+
 	# Define the configuration template in a variable using a heredoc
 	CONFIG_CONTENT=$(cat <<-EOF
 		#!/usr/bin/env bash
@@ -213,7 +212,7 @@ create_config() {
 		# please run ./sapiens.sh.
 		# ------------------------------------------------------------------------------------------
 		
-		# Script Version
+		# Script & Sapiens Version
 		VERSION="0.5.0"
 		
 		# Installation Variables

@@ -70,7 +70,7 @@ manage_world_menu_ui() {
             4) stop_server ;;
             5) hardstop_server ;;
             6) auto_restart ;;
-            7) backup_server ;;
+            7) backup_world ;;
             8) active_world_info_ui ;;
             9) 
                 break ;;  # Exit to the main menu
@@ -268,4 +268,24 @@ create_world_ui() {
     else
         dialog --clear --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now select it as the active world in the main menu." 10 70
     fi
+}
+
+# Provides a visual progress bar for using the sleep command
+sleep_ui() {
+    local message=$1
+    local waittime=$2
+    local increment=$((100 / waittime))  # Calculate the increment per second.
+    local progress=0                     # Initialize progress.
+
+    {
+        for (( i=1; i <= waittime; i++ )); do
+            progress=$((increment * i))  # Calculate progress based on current loop iteration.
+            if ((progress > 100)); then  # Cap the progress at 100%.
+                progress=100
+            fi
+            echo $progress               # Send current progress to dialog.
+            sleep 1                      # Wait for a second.
+        done
+        echo 100                         # Ensure the progress reaches 100% at the end.
+    } | dialog --clear --gauge "$message" 6 50 0
 }

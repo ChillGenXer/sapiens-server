@@ -1,6 +1,7 @@
 config.sh
 scrapbook.sh
 test.sh
+start.log
 no-restart.flag
 log_backups/*.tar.gz
 world_backups/*.tar.gz

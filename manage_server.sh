@@ -2,18 +2,13 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Script file to externalize server interaction functions.
 
-# Data structures to hold the installed world information.
-declare -a server_ids
-declare -a world_ids
-declare -a world_names
-declare -a display_lines
-
 # Open the screen session to see the server console
 open_console() {
     # Call server_status to see if the screen session exists
     if server_status; then
         # If a screen session is found, resume it
-        dialog --clear --msgbox "You are about to open the console for $WORLD_NAME.  Once open, to exit the console without stopping the server hold CTRL then press A + D." 10 70
+        dialog --colors --clear --msgbox \
+            " You are about to open the console for \Zb$WORLD_NAME\ZB. Once open, to exit the console without stopping the server \Zb\Z1hold CTRL then press A + D\Zn\ZB." 0 0
         screen -r $SCREEN_NAME
     else
         # Let the user know.
@@ -47,31 +42,28 @@ start_server() {
 
 # Stop the running server and ensure the screen session is terminated
 stop_server() {
-    local silent_mode=$1  # Accepts an argument to determine silent mode
+    # Valid arguments
+    local silent_mode=$1    # Accepts an argument "silent" to set silent mode
+    local shutdown_wait=5   # TODO - Add this to configurable options
 
-    # First, stop the server processes using the usual method
-    if pgrep -x "linuxServer" > /dev/null; then
-        touch "no-restart.flag"  # Set a flag to prevent restart in start.sh
-        killall linuxServer
-        
-        # Provide user feedback if not in silent mode
-        if [ "$silent_mode" != "silent" ]; then
-            dialog --clear --msgbox "'$WORLD_NAME' has been stopped. If you intend to keep it stopped until you manually start it again, please do a hard stop from the menu." 10 50
-        fi
+    # Attempt to shut down the server cleanly via screen.
+    screen -S $SCREEN_NAME -X stuff 'stop^M'
+    
+    # Wait for it to finish
+    if [ "$silent_mode" != "silent" ]; then
+        sleep_ui "Shutting down $WORLD_NAME..." $shutdown_wait
     else
-        if [ "$silent_mode" != "silent" ]; then
-            dialog --clear --msgbox "'$WORLD_NAME' was already stopped." 10 50
-        fi
+        sleep $shutdown_wait
     fi
 
-    # Check and terminate the screen session if it exists
+    # Check and terminate the screen session if it still exists
     if screen -list | grep -q "$SCREEN_NAME"; then
         screen -S "$SCREEN_NAME" -X quit
+    fi
 
-        # Provide feedback about screen termination
-        if [ "$silent_mode" != "silent" ]; then
-            dialog --clear --msgbox "Screen session '$SCREEN_NAME' has been terminated." 10 50
-        fi
+    # Provide feedback about screen termination
+    if [ "$silent_mode" != "silent" ]; then
+        dialog --clear --msgbox "World $WORLD_NAME has been stopped." 10 50
     fi
 }
 
@@ -115,22 +107,6 @@ auto_restart() {
     fi
 }
 
-# Function to backup the world folder to the specified backup directory.
-backup_server() {
-    # TODO Error handling
-    # Ensure that the server is stopped.
-    stop_server silent
-
-    echo "Backing up the world '$WORLD_NAME'..."
-    TIMESTAMP=$(date +%Y%m%d%H%M%S)
-    BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
-    cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
-    # Archive the specific world directory, including its name in the archive
-    tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
-
-    dialog --clear --msgbox "'$WORLD_NAME' has been backed up.  Don't forget to restart your world." 10 70
-}
-
 # Checks to see if there is an active screen session, implying the server is up
 server_status() {
     #TODO Should probably check for the linuxServer process too to make this more robust
@@ -145,35 +121,11 @@ send_server_message(){
     screen -S "$SCREEN_SESSION" -p 0 -X stuff $'server:callClientFunctionForAllClients("chatMessageRecieved", {text="'$message'", clientName = "Server"})\r'
 }
 
-# Function to refresh and check world list
-refresh_worldlist() {
-    local server_dir world_dir
-    local counter=1
-    local world_found=false
+get_current_version() {
+    local version_line=""
 
-    for server_dir in "$PLAYERS_DIR"/*; do
-        if [ -d "$server_dir/worlds" ]; then
-            for world_dir in "$server_dir/worlds"/*; do
-                if [ -d "$world_dir" ] && [ -f "$world_dir/info.json" ]; then
-                    world_found=true
-                    local server_id=$(basename "$server_dir")
-                    local world_id=$(basename "$world_dir")
-                    local world_name=$(jq -r '.value0.worldName' "$world_dir/info.json")
+    #Run the --help command on the server executable and cut out the version number
+    version_line=$($GAME_DIR/linuxServer --help | grep 'Version:')
+    SAPIENS_VERSION=$(echo "$version_line" | cut -d':' -f2 | xargs)
 
-                    server_ids[counter]=$server_id
-                    world_ids[counter]=$world_id
-                    world_names[counter]="$world_name"
-                    display_lines[counter]="    $counter. World Name: $world_name, World ID: $world_id"
-
-                    ((counter++))
-                fi
-            done
-        fi
-    done
-
-    if [ "$world_found" = true ]; then
-        return 0  # Success: at least one world found
-    else
-        return 1  # Error: no worlds found
-    fi
 }
