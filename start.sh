@@ -30,15 +30,10 @@ while true; do
 
     # Start the server with the configured world's parameters.
     cd $GAME_DIR
-    if [ "$ADVERTISE" == "true" ]; then
-        echo "./linuxServer $PROVIDE_LOGS--advertise '$SERVER_NAME' --server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'" | tee -a "$LOG_FILE"
-        ./linuxServer $PROVIDE_LOGS--advertise "$SERVER_NAME" --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
-        status=$?
-    else
-        echo "./linuxServer --server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'" | tee -a "$LOG_FILE"
-        ./linuxServer --server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
-        status=$?
-    fi
+
+    echo "./linuxServer $PROVIDE_LOGS$ADVERTISE--server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'" | tee -a "$LOG_FILE"
+    ./linuxServer $PROVIDE_LOGS$ADVERTISE--server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
+    status=$?
 
     # Check the exit status of the command. If it's non-zero, assume it crashed,
     # save the logs and restart it.

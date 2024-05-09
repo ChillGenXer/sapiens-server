@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: Script file library for the UI functions.
+# Description: Script file library for the UI screen functions.
 
 # Application Main Menu
 main_menu_ui() {
@@ -19,15 +19,19 @@ main_menu_ui() {
     local user_choice=$(dialog --clear --title "Sapiens Server Manager - $active_world_msg" --menu "Choose an option:" 20 78 6 "${options[@]}" 3>&1 1>&2 2>&3)
 
     case $user_choice in
-        1) manage_world_menu_ui ;;
+        1) 
+            if refresh_worldlist; then
+                manage_world_menu_ui
+            else
+                dialog --clear --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
+            fi ;;
         2) 
             if refresh_worldlist; then
                 select_world_ui
                 setup_server_ui
             else
                 dialog --clear --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
-            fi
-        ;;
+            fi ;;
         3) create_world_ui ;;
         4) upgrade_sapiens ;;
         5) install_dependencies ;;
@@ -93,31 +97,23 @@ manage_world_menu_ui() {
 active_world_info_ui() {
     # Initialize local variables
     local send_logs="No"
-    local send_world="No"
 
-    # Determine the values based on PROVIDE_LOGS
-    case "$PROVIDE_LOGS" in
-        "--yes ")
-            send_logs="Yes"
-            ;;
-        "--yes-upload-world ")
-            send_logs="Yes"
-            send_world="Yes"
-            ;;
-    esac
+    # Get a human-friendly value for PROVIDE_LOGS
+    if [[ "$PROVIDE_LOGS" == "--yes " ]]; then
+        send_logs="Yes"
+    else
+        send_logs="No"
+    fi
 
-    # Gather server information
-    IP_ADDRESS=$(ip addr show $(ip route show default | awk '/default/ {print $5}') | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}')
-    local server_info="Server Name               : $SERVER_NAME\n"
+    # Assemble the server information
+    local server_info="---------------------------------------------------------------------\n"
     server_info+="World Name                : $WORLD_NAME\n"
     server_info+="Local IP Address          : $IP_ADDRESS\n"
     server_info+="UDP Port                  : $UDP_PORT\n"
-    server_info+="Steam Port (UDP Port + 1) : $((UDP_PORT + 1))\n"  # Calculate Steam port on the fly
+    server_info+="Steam Port                : $((UDP_PORT + 1))\n"  # Calculate Steam port on the fly
     server_info+="HTTP Port                 : $HTTP_PORT\n"
     server_info+="Advertising In-Game       : $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")\n"
     server_info+="Send logs on crash        : $send_logs\n"
-    server_info+="Send world on crash       : $send_world\n"
-    server_info+="Multiplayer Server Entry  : $SERVER_NAME - $WORLD_NAME\n"
     server_info+="---------------------------------------------------------------------\n"
     server_info+="If you intend to expose the server outside your network, please ensure\n"
     server_info+="you forward all 3 ports on your router to this machine (IP Address $IP_ADDRESS)."
@@ -176,24 +172,17 @@ select_world_ui() {
 
 # Function to configure the active world
 setup_server_ui() {
-    # Get the server name with a default value, defaulting to the existing SERVER_NAME or a placeholder
-    SERVER_NAME=$(dialog --clear --inputbox "Enter server name:" 10 60 "${SERVER_NAME:-'My Server Name'}" 3>&1 1>&2 2>&3)
-    SERVER_NAME=${SERVER_NAME:-"My Server Name"}
 
     # Ask if the server should be advertised with the default set to the existing value
-    if dialog --clear --yesno "Advertise server to the public in-game? Current setting: $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")" 10 60; then
-        ADVERTISE="true"
+    if dialog --clear --yesno "Advertise server to the public in-game? Current setting: $( [ "$ADVERTISE" == "--ADVERTISE " ] && echo "Yes" || echo "No")" 0 0; then
+        ADVERTISE="--ADVERTISE "
     else
-        ADVERTISE="false"
+        ADVERTISE=""
     fi
 
     # Ask if logs should be sent on crash
-    if dialog --clear --yesno "Do you want to send your log files to help fix bugs on a crash?" 10 60; then
-        PROVIDE_LOGS="--yes "
-        # Ask if world data should also be sent
-        if dialog --clear --yesno "Do you also want to send a copy of your world (can take long for large worlds)?" 10 60; then
-            PROVIDE_LOGS="--yes-upload-world "
-        fi
+    if dialog --clear --yesno "Do you want to send your log files to help the developer fix bugs on a crash?" 10 60; then
+        PROVIDE_LOGS="--yes "   # Need the space for the server launch in start.sh.
     else
         PROVIDE_LOGS=""
     fi
@@ -233,7 +222,7 @@ create_world_ui() {
     {
         echo 10
         sleep 1
-        $HOME/.local/share/Steam/steamcmd/sapiens/linuxServer --server-id "$SERVER_ID" --new "$WORLD_NAME" >/dev/null 2>&1 &
+        $GAME_DIR/linuxServer --server-id "$SERVER_ID" --new "$WORLD_NAME" >/dev/null 2>&1 &
         pid=$!
         echo 50
         sleep 5  
@@ -250,7 +239,7 @@ create_world_ui() {
     } | dialog --clear --gauge "Please wait, creating the world..." 6 50 0
 
     # Attempt to retrieve the WORLD_ID of the new world
-    base_dir="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds"
+    base_dir="$PLAYERS_DIR/$SERVER_ID/worlds"
     for world_dir in "$base_dir"/*; do
         info_json="$world_dir/info.json"
         if [[ -f "$info_json" ]]; then
@@ -266,6 +255,7 @@ create_world_ui() {
     if [[ -z "$WORLD_ID" ]]; then
         dialog --clear --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
     else
+        create_config   # Refresh the configuration file
         dialog --clear --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now select it as the active world in the main menu." 10 70
     fi
 }

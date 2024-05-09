@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: Script file to externalize server interaction functions.
+# Description: Script file library to manage the server interaction functions.
 
 # Open the screen session to see the server console
 open_console() {
@@ -119,13 +119,4 @@ server_status() {
 send_server_message(){
     local message = $1
     screen -S "$SCREEN_SESSION" -p 0 -X stuff $'server:callClientFunctionForAllClients("chatMessageRecieved", {text="'$message'", clientName = "Server"})\r'
-}
-
-get_current_version() {
-    local version_line=""
-
-    #Run the --help command on the server executable and cut out the version number
-    version_line=$($GAME_DIR/linuxServer --help | grep 'Version:')
-    SAPIENS_VERSION=$(echo "$version_line" | cut -d':' -f2 | xargs)
-
 }

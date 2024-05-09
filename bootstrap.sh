@@ -2,9 +2,20 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Initial setup and system functions.
 
-#Initial settings
+#Session Constants
 CONFIG_FILE="config.sh"
 VERSION="0.5.0"
+SCRIPT_DIR="$HOME/sapiens-server"
+SERVER_ID="$(whoami)"               # The standard server-id (/players) for an install will be the linux account
+SCREEN_NAME="sapiens-server"
+IP_ADDRESS=$(ip addr show $(ip route show default | awk '/default/ {print $5}') | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}')
+# Server and Game Locations
+GAME_DIR="$HOME/.local/share/Steam/steamcmd/sapiens"
+SAPIENS_DIR="$HOME/.local/share/majicjungle/sapiens"
+BACKUP_DIR="$SCRIPT_DIR/world_backups"
+LOG_BACKUP_DIR="$SCRIPT_DIR/log_backups"
+PLAYERS_DIR="$SAPIENS_DIR/players"  # Used in manage_worlds.refresh_worldlist
+ENET_LOG="$SAPIENS_DIR/enetServerLog.log"
 
 # Array of dependencies for the server to run and needed by the script to work.  It is in an array for clarity
 # with the cell name being the actual package name for use in apt package manager, while the value is the command
@@ -17,9 +28,6 @@ declare -A DEPENDENCIES=(
     [procps]=ps             # process grep
     [dialog]=dialog         # Console UI functions
 )
-
-# Set a trap to clear the screen when exiting
-#trap shutdown_sequence EXIT
 
 # First function that will be run to check if all the bits are here
 startup_sequence(){
@@ -41,6 +49,7 @@ startup_sequence(){
         install_dependencies    # Install Steamcmd and the other required dependencies
         patch_steam             # Patch for the steam client.
         upgrade_sapiens         # Use steamcmd to update the sapiens executable.
+        create_config           # Generate a new config to get the version number.
 
         dialog --msgbox "Sapiens Server Manager installation successfully complete!" 0 0
     fi
@@ -172,6 +181,13 @@ upgrade_sapiens(){
     steamcmd +runscript ~/sapiens-server/steamupdate.txt
 }
 
+# Gets the current version of the Sapiens linuxServer executable
+get_sapiens_version() {
+    #Run the --help command on the server executable and cut out the version number
+    local version_line=$($GAME_DIR/linuxServer --help | grep 'Version:')
+    SAPIENS_VERSION=$(echo "$version_line" | cut -d':' -f2 | xargs)
+}
+
 # A little hack to fix the location of the steam client
 patch_steam(){
     echo "Patching mislocated steamclient.so..."
@@ -201,6 +217,8 @@ set_permissions(){
 
 #Generate a configuration file
 create_config() {
+    #Refresh the Sapiens Version
+    get_sapiens_version
 
 	# Define the configuration template in a variable using a heredoc
 	CONFIG_CONTENT=$(cat <<-EOF
@@ -214,38 +232,31 @@ create_config() {
 		
 		# Script & Sapiens Version
 		VERSION="0.5.0"
-		
-		# Installation Variables
-		SCRIPT_DIR="$SCRIPT_DIR"
-		WORLD_NAME="$WORLD_NAME"
-		SERVER_ID="$SERVER_ID"
-		WORLD_ID="$WORLD_ID"
-		SCREEN_NAME="sapiens-server"
+		SAPIENS_VERSION="$SAPIENS_VERSION"
 
-		# Network Settings
+        # Active Server World command line startup args
+		WORLD_NAME="$WORLD_NAME"
+		WORLD_ID="$WORLD_ID"
 		UDP_PORT="$UDP_PORT"
 		HTTP_PORT="$HTTP_PORT"
-		ADVERTISE=$ADVERTISE
-		SERVER_NAME="$SERVER_NAME"
+		ADVERTISE="$ADVERTISE"
 		PROVIDE_LOGS="$PROVIDE_LOGS"
-		
-		# Server and Game Locations
-		GAME_DIR="$HOME/.local/share/Steam/steamcmd/sapiens"
-		SAPIENS_DIR="$HOME/.local/share/majicjungle/sapiens"
-		BACKUP_DIR="$HOME/sapiens-server/world_backups"
-		PLAYERS_DIR="$SAPIENS_DIR/players"
+
+        # Values needed by start.sh
+        SCRIPT_DIR="$SCRIPT_DIR"
+        GAME_DIR="$GAME_DIR"
+        SERVER_ID="$SERVER_ID"
 
         # World Locations
-        WORLD_DIR="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID"
-        WORLD_CONFIG_LUA="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/config.lua"
-        WORLD_INFO="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/info.json"
-        GAME_CONFIG="$GAME_CONFIG"
+        WORLD_DIR="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID"
+        WORLD_CONFIG_LUA="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/config.lua"
+        WORLD_INFO="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/info.json"
 
-		# Logging Directories
-		LOG_BACKUP_DIR="$HOME/sapiens-server/log_backups"
-		ENET_LOG="$SAPIENS_DIR/enetServerLog.log"
-		SERVERLOG_LOG="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/logs/serverLog.log"
-		WORLD_LOGS_DIR="$HOME/.local/share/majicjungle/sapiens/players/$SERVER_ID/worlds/$WORLD_ID/logs"
+        # World Logs
+        ENET_LOG="$SAPIENS_DIR/enetServerLog.log"
+		SERVERLOG_LOG="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/logs/serverLog.log"
+		WORLD_LOGS_DIR="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/logs"
+        LOG_BACKUP_DIR="$LOG_BACKUP_DIR"
 	EOF
 	)
 
@@ -258,3 +269,6 @@ create_config() {
 		exit 1
 	fi
 }
+
+# Set a trap to clear the screen when exiting
+#trap shutdown_sequence EXIT

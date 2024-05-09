@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: Library of functions to manage installed worlds.
+# Description: Script file Library of functions to manage installed worlds.
 
 # Data structures to hold the installed world information.
 declare -a server_ids
@@ -43,8 +43,46 @@ refresh_worldlist() {
 
 # Create a new world
 create_world() {
-    local new_server_id=$1
-    local new_world_name=$2
+    local new_world_name=$1
+    local base_dir="$PLAYERS_DIR/$SERVER_ID/worlds"
+
+    # Default the world name if none is provided
+    if [ -z "$new_world_name" ]; then
+        new_world_name="Nameless Sapiens World"
+    fi
+
+    # Create the world and grab the process pid
+    $GAME_DIR/linuxServer --server-id "$SERVER_ID" --new "$new_world_name" >/dev/null 2>&1 &
+    pid=$!
+
+    sleep 5     # Wait a bit to make sure the world creation is complete
+    kill $pid   # Kill the linuxServer process
+    sleep 2     # Wait a bit for it to be killed
+
+    # Make sure the process was killed.
+    if kill -0 $pid 2>/dev/null; then
+        # It's not able to kill the process.  TODO: There could still be a world?  Not sure if this will even happen.
+        return 1
+    fi
+
+    # Attempt to retrieve the WORLD_ID of the new world
+    for world_dir in "$base_dir"/*; do
+        info_json="$world_dir/info.json"
+        if [[ -f "$info_json" ]]; then
+            current_world_name=$(jq -r '.value0.worldName' "$info_json")
+            if [[ "$current_world_name" == "$WORLD_NAME" ]]; then
+                local new_world_id=$(basename "$world_dir")
+                break
+            fi
+        fi
+    done
+
+    # Validate if WORLD_ID was successfully retrieved
+    if [[ -z "$new_world_id" ]]; then
+        dialog --clear --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
+    else
+        dialog --clear --msgbox "$WORLD_NAME creation completed successfully with World ID: $new_world_id. You can now select it as the active world in the main menu." 10 70
+    fi
 }
 
 # Restore world from an archive file
@@ -64,7 +102,7 @@ backup_world() {
     echo "Backing up the world '$WORLD_NAME'..."
     TIMESTAMP=$(date +%Y%m%d%H%M%S)
     BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
-    cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
+    cd "$PLAYERS_DIR/$SERVER_ID/worlds"
     # Archive the specific world directory, including its name in the archive
     tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
 
