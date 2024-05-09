@@ -47,42 +47,35 @@ create_world() {
     local base_dir="$PLAYERS_DIR/$SERVER_ID/worlds"
 
     # Default the world name if none is provided
-    if [ -z "$new_world_name" ]; then
-        new_world_name="Nameless Sapiens World"
-    fi
+    [ -z "$new_world_name" ] && new_world_name="Nameless Sapiens World"
 
     # Create the world and grab the process pid
     $GAME_DIR/linuxServer --server-id "$SERVER_ID" --new "$new_world_name" >/dev/null 2>&1 &
-    pid=$!
-
+    local pid=$!
     sleep 5     # Wait a bit to make sure the world creation is complete
     kill $pid   # Kill the linuxServer process
     sleep 2     # Wait a bit for it to be killed
 
     # Make sure the process was killed.
     if kill -0 $pid 2>/dev/null; then
-        # It's not able to kill the process.  TODO: There could still be a world?  Not sure if this will even happen.
-        return 1
+        return 1  # Process not killed, implying failure
     fi
 
     # Attempt to retrieve the WORLD_ID of the new world
+    local new_world_id=""
     for world_dir in "$base_dir"/*; do
-        info_json="$world_dir/info.json"
+        local info_json="$world_dir/info.json"
         if [[ -f "$info_json" ]]; then
-            current_world_name=$(jq -r '.value0.worldName' "$info_json")
-            if [[ "$current_world_name" == "$WORLD_NAME" ]]; then
-                local new_world_id=$(basename "$world_dir")
-                break
+            local current_world_name=$(jq -r '.worldName' "$info_json")
+            if [[ "$current_world_name" == "$new_world_name" ]]; then
+                new_world_id=$(basename "$world_dir")
+                echo "$new_world_id"
+                return 0 # All good, world created and returning it
             fi
         fi
     done
 
-    # Validate if WORLD_ID was successfully retrieved
-    if [[ -z "$new_world_id" ]]; then
-        dialog --clear --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
-    else
-        dialog --clear --msgbox "$WORLD_NAME creation completed successfully with World ID: $new_world_id. You can now select it as the active world in the main menu." 10 70
-    fi
+    return 2  # WORLD_ID not found
 }
 
 # Restore world from an archive file

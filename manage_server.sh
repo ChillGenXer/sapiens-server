@@ -118,5 +118,6 @@ server_status() {
 # Send a chat message to the server
 send_server_message(){
     local message = $1
-    screen -S "$SCREEN_SESSION" -p 0 -X stuff $'server:callClientFunctionForAllClients("chatMessageRecieved", {text="'$message'", clientName = "Server"})\r'
+    local clientName = "SERVER BROADCAST"   # Hardcode for now
+    screen -S "$SCREEN_SESSION" -p 0 -X stuff $'server:callClientFunctionForAllClients("chatMessageRecieved", {text="'$message'", clientName = "'$clientName'"})\r'
 }

@@ -44,7 +44,7 @@ startup_sequence(){
 
     # Check if all required dependencies are installed
     if ! get_dependency_status; then
-        echo "The account $(whoami) does not have the necessary software installed to run a Sapiens Server. Beginning installation..."
+        echo "The account $(whoami) does not have the necessary software installed to run a Sapiens Server, installing dependencies..."
 
         install_dependencies    # Install Steamcmd and the other required dependencies
         patch_steam             # Patch for the steam client.

@@ -33,8 +33,8 @@ main_menu_ui() {
                 dialog --clear --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
             fi ;;
         3) create_world_ui ;;
-        4) upgrade_sapiens ;;
-        5) install_dependencies ;;
+        4) clear; upgrade_sapiens ;;
+        5) clear; install_dependencies ;;
         6) 
             return 1  # Exit application
         ;;
@@ -211,53 +211,29 @@ setup_server_ui() {
 # Create a new Sapiens world via linuxServer --new
 create_world_ui() {
     # Prompt for the world name
-    WORLD_NAME=$(dialog --clear --inputbox "Enter the name for the new world (or leave empty for 'Nameless Sapiens World'):" 10 60 3>&1 1>&2 2>&3)
+    local world_name=$(dialog --clear --inputbox "Enter the name for the new world (or leave empty for 'Nameless Sapiens World'):" 10 60 3>&1 1>&2 2>&3)
     
     # Default the world name if none is provided
-    if [ -z "$WORLD_NAME" ]; then
-        WORLD_NAME="Nameless Sapiens World"
-    fi
+    [ -z "$world_name" ] && world_name="Nameless Sapiens World"
 
-    # Show a gauge while the world is being created
-    {
-        echo 10
-        sleep 1
-        $GAME_DIR/linuxServer --server-id "$SERVER_ID" --new "$WORLD_NAME" >/dev/null 2>&1 &
-        pid=$!
-        echo 50
-        sleep 5  
-        kill $pid  # Intending to stop the background process as per your original function
-        sleep 2
-        if kill -0 $pid 2>/dev/null; then
-            echo 75
-            sleep 1
-            echo 100
-            dialog --clear --msgbox "Failed to create world. Please try again." 10 50
-            return 1
-        fi
-        echo 100
-    } | dialog --clear --gauge "Please wait, creating the world..." 6 50 0
+    # Display an infobox while creating the world
+    dialog --title "Creating World" --infobox "Please wait, creating world $world_name..." 0 0 &
+    local dialog_pid=$!
 
-    # Attempt to retrieve the WORLD_ID of the new world
-    base_dir="$PLAYERS_DIR/$SERVER_ID/worlds"
-    for world_dir in "$base_dir"/*; do
-        info_json="$world_dir/info.json"
-        if [[ -f "$info_json" ]]; then
-            current_world_name=$(jq -r '.value0.worldName' "$info_json")
-            if [[ "$current_world_name" == "$WORLD_NAME" ]]; then
-                WORLD_ID=$(basename "$world_dir")
-                break
-            fi
-        fi
-    done
+    # Call the create_world function and capture the output
+    local world_id=$(create_world "$world_name")
+    local status=$?
 
-    # Validate if WORLD_ID was successfully retrieved
-    if [[ -z "$WORLD_ID" ]]; then
-        dialog --clear --msgbox "Failed to find the newly created world. Please verify and configure manually." 10 50
-    else
-        create_config   # Refresh the configuration file
-        dialog --clear --msgbox "$WORLD_NAME creation completed successfully with World ID: $WORLD_ID. You can now select it as the active world in the main menu." 10 70
-    fi
+    # Kill the infobox after the world creation is complete
+    kill $dialog_pid
+
+    # Tell the user what happened
+    case $status in
+        0) dialog --clear --msgbox "$world_name creation completed successfully with World ID: $world_id. You can now select it as the active world in the main menu." 0 0 ;;
+        1) dialog --clear --msgbox "Failed to terminate the server process correctly. Please check the system." 0 0 ;;
+        2) dialog --clear --msgbox "Failed to find the newly created world. Please verify and configure manually." 0 0 ;;
+        *) dialog --clear --msgbox "An unexpected error occurred." 0 0 ;;
+    esac
 }
 
 # Provides a visual progress bar for using the sleep command

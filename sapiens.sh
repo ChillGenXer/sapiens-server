@@ -5,9 +5,8 @@
 # library files, runs the startup sequence to see if everything needed is installed, and then either
 # handles a command line request or starts the application UI.
 
-# Source the required files
-required_files=("bootstrap.sh" "ui_functions.sh" "manage_server.sh" "manage_worlds.sh")
-
+# Source the required library scripts
+required_files=("bootstrap.sh" "ui_functions.sh" "manage_server.sh" "manage_worlds.sh" "errorcodes.sh")
 for file in "${required_files[@]}"; do
     if ! source "$file"; then
         echo "Error: Failed to source $file. Ensure the file exists in the script directory and is readable."
