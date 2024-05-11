@@ -9,7 +9,7 @@ if [ ! -f "config.sh" ]; then
   echo "Error: config.sh file not found.  Please ensure you run 'install.sh' first to generate the configuration for the scripts."
   exit 1
 else
-  source config.sh
+  source $CONFIG_FILE
 fi
 
 # Server lifecycle loop
