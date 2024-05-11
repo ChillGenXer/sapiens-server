@@ -2,6 +2,12 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Script file library for the UI screen functions.
 
+# Check if the script is being run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "This is a library script file, and not meant to be run directly. Run sapiens.sh only."
+    exit 1
+fi
+
 # Application Main Menu
 main_menu_ui() {
     # Display the active world if one is selected
@@ -58,7 +64,7 @@ manage_world_menu_ui() {
             "3" "Restart Server"
             "4" "Stop Server"
             "5" "Hard Stop Server"
-            "6" "Toggle Auto Restart"
+            "6" "Set Server Restart Schedule"
             "7" "Backup Server"
             "8" "Show Active World Info"
             "9" "Exit to Main Menu"
@@ -73,7 +79,7 @@ manage_world_menu_ui() {
             3) restart_server ;;
             4) stop_server ;;
             5) hardstop_server ;;
-            6) auto_restart ;;
+            6) auto_restart_ui ;;
             7) backup_world ;;
             8) active_world_info_ui ;;
             9) 
@@ -112,7 +118,7 @@ active_world_info_ui() {
     server_info+="UDP Port                  : $UDP_PORT\n"
     server_info+="Steam Port                : $((UDP_PORT + 1))\n"  # Calculate Steam port on the fly
     server_info+="HTTP Port                 : $HTTP_PORT\n"
-    server_info+="Advertising In-Game       : $( [ "$ADVERTISE" == "true" ] && echo "Yes" || echo "No")\n"
+    server_info+="Advertising In-Game       : $( [ "$ADVERTISE" == "--advertise " ] && echo "Yes" || echo "No")\n"
     server_info+="Send logs on crash        : $send_logs\n"
     server_info+="---------------------------------------------------------------------\n"
     server_info+="If you intend to expose the server outside your network, please ensure\n"
@@ -175,7 +181,7 @@ setup_server_ui() {
 
     # Ask if the server should be advertised with the default set to the existing value
     if dialog --clear --yesno "Advertise server to the public in-game? Current setting: $( [ "$ADVERTISE" == "--ADVERTISE " ] && echo "Yes" || echo "No")" 0 0; then
-        ADVERTISE="--ADVERTISE "
+        ADVERTISE="--advertise " # Need the space for the server launch in start.sh.
     else
         ADVERTISE=""
     fi
@@ -254,4 +260,43 @@ sleep_ui() {
         done
         echo 100                         # Ensure the progress reaches 100% at the end.
     } | dialog --clear --gauge "$message" 6 50 0
+}
+
+auto_restart_ui() {
+    local interval
+
+    # Loop until valid input is received or the user chooses to cancel
+    while true; do
+        # Using dialog to get user input for restart interval
+        exec 3>&1
+        interval=$(dialog --inputbox "Enter the auto-restart interval in hours (1-24, 0 to disable):" 10 50 2>&1 1>&3)
+        exit_status=$?
+        exec 3>&-
+
+        # Check if user chose to cancel
+        if [ $exit_status -ne 0 ]; then
+            dialog --msgbox "You chose to cancel." 5 40
+            return 0
+        fi
+
+        # Validate the input before confirming it to the user
+        if [[ "$interval" =~ ^[0-9]+$ ]] && (( interval == 0 || ( interval >= 1 && interval <= 24 ) )); then
+            # Ask the user to confirm creating the schedule
+            exec 3>&1
+            confirmation=$(dialog --yesno "Restart the world every $interval hour(s) - create the schedule?" 7 50 2>&1 1>&3)
+            confirm_status=$?
+            exec 3>&-
+            if [ $confirm_status -eq 0 ]; then
+                # If user confirms, call auto_restart and break the loop
+                auto_restart $interval
+                return 0
+            else
+                # If user cancels at this stage, return to the main calling UI script
+                return 0
+            fi
+        else
+            dialog --msgbox "Invalid input: Interval must be a number of hours between 1 and 24 or 0 to disable." 6 50
+            # Continue the loop to re-prompt
+        fi
+    done
 }

@@ -2,6 +2,12 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Script file library to manage the server interaction functions.
 
+# Check if the script is being run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "This is a library script file, and not meant to be run directly. Run sapiens.sh only."
+    exit 1
+fi
+
 # Open the screen session to see the server console
 open_console() {
     # Call server_status to see if the screen session exists
@@ -97,7 +103,7 @@ auto_restart() {
         (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart") | crontab -
         echo "Auto-restart has been disabled."
     elif [[ "$1" =~ ^[1-9]$|^1[0-9]$|^2[0-4]$ ]]; then
-        INTERVAL="$1"
+        local INTERVAL="$1"
         CRON_JOB="0 */$INTERVAL * * * $SCRIPT_DIR/sapiens.sh restart"
         (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart"; echo "$CRON_JOB") | crontab -
         echo "$WORLD_NAME will restart every $INTERVAL hour(s)."
@@ -118,6 +124,5 @@ server_status() {
 # Send a chat message to the server
 send_server_message(){
     local message = $1
-    local clientName = "SERVER BROADCAST"   # Hardcode for now
-    screen -S "$SCREEN_SESSION" -p 0 -X stuff $'server:callClientFunctionForAllClients("chatMessageRecieved", {text="'$message'", clientName = "'$clientName'"})\r'
+    screen -S "$SCREEN_SESSION" -p 0 -X stuff $'server:broadcast("'$message'")\r'
 }

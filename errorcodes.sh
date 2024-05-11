@@ -47,11 +47,11 @@ BOLD='\033[1m'
 UNDERLINE='\033[4m'
 
 # Example usage of colors in echo statements
-echo -e "${RED}This text is red.${NC}"
-echo -e "${GREEN}This text is green.${NC}"
-echo -e "${YELLOW}This text is yellow.${NC}"
-echo -e "${BLUE}This text is blue.${NC}"
-echo -e "${BRIGHT_RED}This text is bright red.${NC}"
-echo -e "${BRIGHT_GREEN}This text is bright green.${NC}"
-echo -e "${BRIGHT_YELLOW}This text is bright yellow.${NC}"
-echo -e "${BRIGHT_BLUE}This text is bright blue.${NC}"
+#echo -e "${RED}This text is red.${NC}"
+#echo -e "${GREEN}This text is green.${NC}"
+#echo -e "${YELLOW}This text is yellow.${NC}"
+#echo -e "${BLUE}This text is blue.${NC}"
+#echo -e "${BRIGHT_RED}This text is bright red.${NC}"
+#echo -e "${BRIGHT_GREEN}This text is bright green.${NC}"
+#echo -e "${BRIGHT_YELLOW}This text is bright yellow.${NC}"
+#echo -e "${BRIGHT_BLUE}This text is bright blue.${NC}"

@@ -2,6 +2,12 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Initial setup and system functions.
 
+# Check if the script is being run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "This is a library script file, and not meant to be run directly. Run sapiens.sh only."
+    exit 1
+fi
+
 #Session Constants
 CONFIG_FILE="config.sh"
 VERSION="0.5.0"
@@ -50,8 +56,11 @@ startup_sequence(){
         patch_steam             # Patch for the steam client.
         upgrade_sapiens         # Use steamcmd to update the sapiens executable.
         create_config           # Generate a new config to get the version number.
+        add_to_path $SCRIPT_DIR # Add the script directory to the path.
 
-        dialog --msgbox "Sapiens Server Manager installation successfully complete!" 0 0
+        echo "Sapiens Server Manager installation successfully complete!"
+        read -n 1 -s -r -p "Press any key to continue"
+        echo ""  # Move to the next line after the key press
     fi
 }
 
@@ -82,12 +91,12 @@ check_for_root() {
 
 # Welcome screen
 splash_text() {
-    local width=$(tput cols)  # Get the current width of the terminal
+    local width=70  # Get the current width of the terminal
     local line=$(printf '%*s' "$width" | tr ' ' '-')  # Create a separator line of the appropriate length
-
     local title="Sapiens Linux Dedicated Server Install Script"
     local author="Author: ChillGenXer (chillgenxer@gmail.com)"
-    local version="Version: $VERSION"
+    local repo="GitHub: https://github.com/ChillGenXer/sapiens-server.git"
+    local version="Script Version: $VERSION"
     local tested="This script has been tested on Ubuntu 23.10 (22.04 will not work), higher versions should work as well."
     local glibc_info="The Sapiens Server requires GLIBC_2.38 or higher. Other Linux distributions with the correct GLIBC version should work but have not been tested."
     local note="Please note this installation script supports 1 server running 1 world, which should be fine for most people. Running multiple servers is planned for a future version."
@@ -96,6 +105,7 @@ splash_text() {
     echo "$line"
     printf "%*s\n" $(( (width + ${#title}) / 2 )) "$title"
     printf "%*s\n" $(( (width + ${#author}) / 2 )) "$author"
+    printf "%*s\n" $(( (width + ${#repo}) / 2 )) "$repo"
     printf "%*s\n" $(( (width + ${#version}) / 2 )) "$version"
     echo "$line"
     echo "$tested" | fmt -w "$width"
@@ -106,21 +116,34 @@ splash_text() {
     echo ""
 }
 
-# Add a directory to the path
-add_to_path(){
+# Adds the script directory to the path configuration.
+add_to_path() {
     local path_to_add="$1"
+    local shell_config_file
+
+    # Determine which shell the user is using and select appropriate config file
+    case "$SHELL" in
+        */bash)
+            shell_config_file="$HOME/.bashrc"
+            ;;
+        */zsh)
+            shell_config_file="$HOME/.zshrc"
+            ;;
+        *)
+            echo "Unsupported shell. Please add the directory manually to your shell's config file."
+            return 1
+            ;;
+    esac
 
     # Check if the directory is already in the PATH
     if [[ ":$PATH:" != *":$path_to_add:"* ]]; then
-        # Adding the directory to PATH in .bashrc
-        echo "export PATH=\$PATH:$path_to_add" >> $HOME/.bashrc
-        echo "$path_to_add added to your PATH."
+        # Adding the directory to the PATH in the determined shell config file
+        echo "export PATH=\$PATH:$path_to_add" >> "$shell_config_file"
+        echo "$path_to_add added to your PATH in $shell_config_file."
+        echo "Please restart your shell or source $shell_config_file to apply the changes."
     else
         echo "$path_to_add is already in your PATH."
     fi
-
-    # Source the .bashrc to update the PATH in the current session
-    source $HOME/.bashrc
 }
 
 #Check if our dependencies are installed and check if sapiens is installed.
@@ -253,7 +276,7 @@ create_config() {
         WORLD_INFO="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/info.json"
 
         # World Logs
-        ENET_LOG="$SAPIENS_DIR/enetServerLog.log"
+        ENET_LOG="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/enetServerLog.log"
 		SERVERLOG_LOG="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/logs/serverLog.log"
 		WORLD_LOGS_DIR="$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/logs"
         LOG_BACKUP_DIR="$LOG_BACKUP_DIR"

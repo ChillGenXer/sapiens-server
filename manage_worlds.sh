@@ -2,6 +2,12 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Script file Library of functions to manage installed worlds.
 
+# Check if the script is being run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "This is a library script file, and not meant to be run directly. Run sapiens.sh only."
+    exit 1
+fi
+
 # Data structures to hold the installed world information.
 declare -a server_ids
 declare -a world_ids
