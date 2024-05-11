@@ -2,6 +2,8 @@ config.sh
 scrapbook.sh
 test.sh
 start.log
-no-restart.flag
+sapservermgr.log
+sapservermgr.db
 log_backups/*.tar.gz
 world_backups/*.tar.gz
+prompts.txt

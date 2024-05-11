@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
-
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Sapiens Server Manager main application script.  This script basically sources the required
 # library files, runs the startup sequence to see if everything needed is installed, and then either
 # handles a command line request or starts the application UI.
 
 # Source the required library scripts
-required_files=("bootstrap.sh" "ui_functions.sh" "manage_server.sh" "manage_worlds.sh" "errorcodes.sh")
+cd $HOME/sapiens-server
+required_files=("bootstrap.sh" "ui_functions.sh" "manage_server.sh" "manage_worlds.sh" "datalayer.sh" "constants.sh")
 for file in "${required_files[@]}"; do
     if ! source "$file"; then
-        echo "Error: Failed to source $file. Ensure the file exists in the script directory and is readable."
+        echo "[ERROR]: Failed to source $file. Ensure the file exists in the script directory and is readable."
         exit 1
     fi
 done
 
 # Do initial checks to see if something needs to be installed.
+logit "DEBUG" "*********************** sapiens.sh started ***********************"
 startup_sequence    # From bootstrap.sh
 
 # Commandline argument handling or main UI loop?

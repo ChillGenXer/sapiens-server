@@ -4,14 +4,18 @@
 
 # Check if the script is being run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "This is a library script file, and not meant to be run directly. Run sapiens.sh only."
+    local current_script=$(basename "${BASH_SOURCE[0]}")
+    echo "The script ($current_script) is a library file, and not meant to be run directly. Run sapiens.sh only."
+    logit "INFO" "Attempt to run $current_script directly detected.  Please use sapiens.sh for all operations."
     exit 1
 fi
 
 # Application Main Menu
 main_menu_ui() {
     # Display the active world if one is selected
+    
     local active_world_msg="Active World: ${WORLD_NAME:-'None Selected'}"
+    logit "INFO" "$active_world_msg"
 
     local options=(
         "1" "Manage the Active World"
@@ -20,6 +24,7 @@ main_menu_ui() {
         "4" "Update Sapiens Server From Steam"
         "5" "Reinstall Dependencies"
         "6" "Quit Sapiens Server Manager"  # Adding an explicit exit option
+        "7" "Manage Port Groups"
     )
     
     local user_choice=$(dialog --clear --title "Sapiens Server Manager - $active_world_msg" --menu "Choose an option:" 20 78 6 "${options[@]}" 3>&1 1>&2 2>&3)
@@ -27,29 +32,27 @@ main_menu_ui() {
     case $user_choice in
         1) 
             if refresh_worldlist; then
-                manage_world_menu_ui
+                logit "DEBUG" "Worldlist loaded, launching manage_world_menu_ui"; manage_world_menu_ui
             else
+                logit "DEBUG" "There are no worlds installed on account $(whoami). Create a new one to get started."
                 dialog --clear --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
             fi ;;
         2) 
             if refresh_worldlist; then
-                select_world_ui
-                setup_server_ui
+                logit "DEBUG" "Launching select_world_ui"; select_world_ui
+                logit "DEBUG" "Launching setup_server_ui"; setup_server_ui
             else
                 dialog --clear --msgbox "There are no worlds installed on account $(whoami). Create a new one to get started." 8 70
             fi ;;
-        3) create_world_ui ;;
-        4) clear; upgrade_sapiens ;;
-        5) clear; install_dependencies ;;
-        6) 
-            return 1  # Exit application
-        ;;
-        '') 
-            return 1  # Signal to exit application if user pressed ESC or Cancel
-        ;;
-        *) 
-            dialog --clear --msgbox "Invalid choice. Please try again." 8 45
-        ;;
+        3) clear; logit "DEBUG" "Launching create_world_ui"; create_world_ui ;;
+        4) clear; logit "DEBUG" "Launching upgrade_sapiens"; upgrade_sapiens ;;
+        5) clear; logit "DEBUG" "Launching install_dependencies";install_dependencies ;;
+        6) return 1 ;; # Exit application
+        7) 
+            logit "DEBUG" "Launching manage_port_groups_ui"
+            manage_port_groups_ui ;;
+        '') return 1 ;; # Signal to exit application if user pressed ESC or Cancel
+        *) dialog --clear --msgbox "Invalid choice. Please try again." 8 45 ;;
     esac
 
     return 0
@@ -115,14 +118,17 @@ active_world_info_ui() {
     local server_info="---------------------------------------------------------------------\n"
     server_info+="World Name                : $WORLD_NAME\n"
     server_info+="Local IP Address          : $IP_ADDRESS\n"
+    server_info+="Your Public IP Address    : $PUBLIC_IP_ADDRESS\n"
     server_info+="UDP Port                  : $UDP_PORT\n"
     server_info+="Steam Port                : $((UDP_PORT + 1))\n"  # Calculate Steam port on the fly
     server_info+="HTTP Port                 : $HTTP_PORT\n"
     server_info+="Advertising In-Game       : $( [ "$ADVERTISE" == "--advertise " ] && echo "Yes" || echo "No")\n"
     server_info+="Send logs on crash        : $send_logs\n"
     server_info+="---------------------------------------------------------------------\n"
-    server_info+="If you intend to expose the server outside your network, please ensure\n"
-    server_info+="you forward all 3 ports on your router to this machine (IP Address $IP_ADDRESS)."
+    server_info+="If you intend to make your server public, please ensure you have the\n"
+    server_info+="ports above port forwarded on your router to the Local IP Address,\n"
+    server_info+="and your ports."
+    logit "INFO" $server_info
 
     # Display the server information
     dialog --clear --title "Active World Information" --msgbox "$server_info" 20 78
@@ -178,7 +184,7 @@ select_world_ui() {
 
 # Function to configure the active world
 setup_server_ui() {
-
+    logit "DEBUG" "setup_server_ui initiated."
     # Ask if the server should be advertised with the default set to the existing value
     if dialog --clear --yesno "Advertise server to the public in-game? Current setting: $( [ "$ADVERTISE" == "--ADVERTISE " ] && echo "Yes" || echo "No")" 0 0; then
         ADVERTISE="--advertise " # Need the space for the server launch in start.sh.
@@ -208,14 +214,17 @@ setup_server_ui() {
     done
 
     # Rewrite the config file
+    logit "DEBUG" "Calling create_config"
     create_config
 
     # Display summary of configuration
+    logit "DEBUG" "Calling active_world_info_ui"
     active_world_info_ui
 }
 
 # Create a new Sapiens world via linuxServer --new
 create_world_ui() {
+    logit "DEBUG" "create_world_ui initiated."
     # Prompt for the world name
     local world_name=$(dialog --clear --inputbox "Enter the name for the new world (or leave empty for 'Nameless Sapiens World'):" 10 60 3>&1 1>&2 2>&3)
     
@@ -227,7 +236,7 @@ create_world_ui() {
     local dialog_pid=$!
 
     # Call the create_world function and capture the output
-    local world_id=$(create_world "$world_name")
+    create_world "$world_name"
     local status=$?
 
     # Kill the infobox after the world creation is complete
@@ -235,15 +244,16 @@ create_world_ui() {
 
     # Tell the user what happened
     case $status in
-        0) dialog --clear --msgbox "$world_name creation completed successfully with World ID: $world_id. You can now select it as the active world in the main menu." 0 0 ;;
-        1) dialog --clear --msgbox "Failed to terminate the server process correctly. Please check the system." 0 0 ;;
-        2) dialog --clear --msgbox "Failed to find the newly created world. Please verify and configure manually." 0 0 ;;
+        0) dialog --clear --msgbox "$world_name creation completed successfully. You can now select it as the active world in the main menu." 0 0 ;;
+        1) dialog --clear --msgbox "Something went wrong, failed to terminate the server process correctly." 0 0 ;;
+        2) dialog --clear --msgbox "Something went wrong, failed to find the newly created world." 0 0 ;;
         *) dialog --clear --msgbox "An unexpected error occurred." 0 0 ;;
     esac
 }
 
 # Provides a visual progress bar for using the sleep command
 sleep_ui() {
+    logit "DEBUG" "sleep_ui initiated."
     local message=$1
     local waittime=$2
     local increment=$((100 / waittime))  # Calculate the increment per second.
@@ -262,7 +272,9 @@ sleep_ui() {
     } | dialog --clear --gauge "$message" 6 50 0
 }
 
+# Allows user to set up autorestarting the world server.
 auto_restart_ui() {
+    logit "DEBUG" "auto_restart_ui initiated."
     local interval
 
     # Loop until valid input is received or the user chooses to cancel
@@ -297,6 +309,64 @@ auto_restart_ui() {
         else
             dialog --msgbox "Invalid input: Interval must be a number of hours between 1 and 24 or 0 to disable." 6 50
             # Continue the loop to re-prompt
+        fi
+    done
+}
+
+manage_port_groups_ui() {
+    logit "DEBUG" "manage_port_groups_ui initiated."
+    while true; do
+        # Fetch existing port groups using the manage_port_groups function
+        port_groups=$(manage_port_groups list)
+
+        # Log current port_groups content for debugging
+        logit "DEBUG" "Current port groups: $port_groups"
+
+        # Check if port_groups is empty and prepare options
+        if [ -z "$port_groups" ]; then
+            port_groups="0 'Create New Port Group'" # Default option if no port groups exist
+        else
+            # Ensure each entry is on a new line and correctly formatted
+            IFS=$'\n' read -r -a lines <<< "$port_groups"
+            port_groups=""
+            for line in "${lines[@]}"; do
+                port_groups+="${line}\n"
+            done
+            port_groups+="0 'Create New Port Group'" # Append create new option
+        fi
+
+        # Present choices: existing port groups and the option to add a new one
+        exec 3>&1
+        selection=$(echo -e "$port_groups" | dialog --title "Port Groups" --menu "Choose a port group to view or create a new one:" 15 50 10 2>&1 1>&3)
+        exit_status=$?
+        exec 3>&-
+
+        if [ "$exit_status" -eq 1 ]; then
+            logit "INFO" "User cancelled or exited the port group management UI."
+            clear
+            return
+        fi
+
+        if [[ "$selection" =~ ^[0-9]+$ ]] && [ "$selection" -eq 0 ]; then
+            # Dialog input boxes for new port group data
+            exec 3>&1
+            udp_port=$(dialog --title "New Port Group" --inputbox "Enter UDP Port:" 8 40 2>&1 1>&3)
+            steam_port=$(dialog --title "New Port Group" --inputbox "Enter Steam Port:" 8 40 2>&1 1>&3)
+            http_port=$(dialog --title "New Port Group" --inputbox "Enter HTTP Port:" 8 40 2>&1 1>&3)
+            port_group_name=$(dialog --title "New Port Group" --inputbox "Enter Port Group Name:" 8 40 2>&1 1>&3)
+            exec 3>&-
+
+            dialog --title "Confirm" --yesno "Create this port group?\nUDP Port: $udp_port\nSteam Port: $steam_port\nHTTP Port: $http_port\nName: $port_group_name" 10 50
+            
+            if [ $? -eq 0 ]; then
+                manage_port_groups create "" "$udp_port" "$steam_port" "$http_port" "$port_group_name"
+                dialog --msgbox "Port group created successfully." 5 40
+                logit "INFO" "New port group created successfully."
+            else
+                logit "INFO" "User cancelled the creation of a new port group."
+            fi
+        else
+            dialog --msgbox "Port Group ID: $selection" 5 40 # Placeholder for future functionality
         fi
     done
 }

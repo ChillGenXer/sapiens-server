@@ -4,33 +4,32 @@
 # restart it if a non-zero argument is returned on exit, implying a crash. On a crash or a normal stop
 # the log files are stored in the logs backup folder.
 
-# Import the configuration
-if [ ! -f "config.sh" ]; then
-  echo "Error: config.sh file not found. Please ensure you run 'install.sh' first to generate the configuration for the scripts." | tee -a "$LOG_FILE"
-  exit 1
-else
-  source config.sh
-fi
+# Source the required library scripts
+cd $HOME/sapiens-server
+required_files=("bootstrap.sh" "manage_server.sh" "manage_worlds.sh" "datalayer.sh" "constants.sh" "config.sh")
+for file in "${required_files[@]}"; do
+    if ! source "$file"; then
+        echo "[ERROR]: Failed to source $file. Ensure the file exists in the script directory and is readable."
 
-LOG_FILE="start.log"
-cd $SCRIPT_DIR
+        exit 1
+    fi
+done
 
 # Check if log file exists, clear it if it does, or create a new one if it doesn't
-: > "$LOG_FILE"  # This command truncates or creates the log file
+: > "$START_LOG_FILE"  # This command truncates or creates the log file
 
 # Server lifecycle loop
 while true; do
     # Check for no-restart flag before attempting to start the server
     cd $SCRIPT_DIR
     if [ -f "no-restart.flag" ]; then
-        echo "No-restart flag found. Exiting without starting the server." | tee -a "$LOG_FILE"
+        echo "No-restart flag found. Exiting without starting the server." | tee -a "$START_LOG_FILE"
         rm "no-restart.flag"  # Clean up the flag for future operations
         break
     fi
 
     # Start the server with the configured world's parameters.
     cd $GAME_DIR
-
     echo "./linuxServer $PROVIDE_LOGS$ADVERTISE--server-id '$SERVER_ID' --load '$WORLD_NAME' --port '$UDP_PORT' --http-port '$HTTP_PORT'" | tee -a "$LOG_FILE"
     ./linuxServer $PROVIDE_LOGS$ADVERTISE--server-id "$SERVER_ID" --load "$WORLD_NAME" --port "$UDP_PORT" --http-port "$HTTP_PORT"
     status=$?

@@ -84,9 +84,9 @@ create_world() {
     return 2  # WORLD_ID not found
 }
 
-# Restore world from an archive file
-restore_world() {
-    local world_archive_path=1$
+# Delete a world
+delete_world() {
+    echo "Not implemented."
 }
 
 # Function to backup the world folder to the specified backup directory.
@@ -106,4 +106,9 @@ backup_world() {
     tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
 
     dialog --clear --msgbox "'$WORLD_NAME' has been backed up.  Don't forget to restart your world." 10 70
+}
+
+# Restore world from an archive file
+restore_world() {
+    local world_archive_path=1$
 }
