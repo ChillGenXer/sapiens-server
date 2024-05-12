@@ -1,19 +1,100 @@
 #!/usr/bin/env bash
+# Author: ChillGenXer (chillgenxer@gmail.com)
+# Description: manage the software-level server.
 
 # Check if the script is being run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    local current_script=$(basename "${BASH_SOURCE[0]}")
+    current_script=$(basename "${BASH_SOURCE[0]}")
     echo "The script ($current_script) is a library file, and not meant to be run directly. Run sapiens.sh only."
     logit "INFO" "Attempt to run $current_script directly detected.  Please use sapiens.sh for all operations."
     exit 1
 fi
 
-# Gets the current version of the Sapiens linuxServer executable
-get_sapiens_version() {
-    #Run the --help command on the server executable and cut out the version number
-    local version_line=$($GAME_DIR/linuxServer --help | grep 'Version:')
-    SAPIENS_VERSION=$(echo "$version_line" | cut -d':' -f2 | xargs)
-    logit "INFO" "Sapiens linuxServer version $SAPIENS_VERSION"
+# Array of dependencies for the server to run and needed by the script to work.  It is in an array for clarity
+# with the cell name being the actual package name for use in apt package manager, while the value is the command
+# used to check if the package is present.
+declare -A DEPENDENCIES=(
+    [screen]=screen         # Used to virtualize the server so the console doesn't need to remain open.
+    [psmisc]=killall        # Needed for the killall command
+    [steamcmd]=steamcmd     # Steam commandline tool for installing and updating the Sapiens server.
+    [jq]=jq                 # Used for managing json files.
+    [procps]=ps             # process grep
+    [sqlite3]=sqlite3       # The configuration database
+)
+
+# Gets a list of the worlds installed in the Sapiens data directory
+show_installed_worlds() {
+    local show_format=$1
+    local server_dir world_dir
+    local counter=1  # Counter to number each world
+
+    logit "DEBUG" "show_installed_worlds started using PLAYERS_DIR = '$PLAYERS_DIR'"
+    for server_dir in "$PLAYERS_DIR"/*; do
+        if [ -d "$server_dir/worlds" ]; then
+            for world_dir in "$server_dir/worlds"/*; do
+                if [ -d "$world_dir" ] && [ -f "$world_dir/info.json" ]; then
+                    local server_id=$(basename "$server_dir")
+                    local world_id=$(basename "$world_dir")
+                    local world_name=$(jq -r '.value0.worldName' "$world_dir/info.json")
+                    
+                    if [[ "$show_format" == "clean" ]]; then
+                        # Display without counter, with color
+                        echo -e "${CYAN}$world_name${NC}"
+                        echo -e "   ${YELLOW}World ID  : ${NC}$world_id"
+                        echo -e "   ${YELLOW}Server ID : ${NC}$server_id"
+                    else
+                        # Display with counter, with color
+                        echo -e "${MAGENTA}$counter. ${CYAN}$world_name${NC}"
+                        echo -e "   ${YELLOW}World ID: ${NC}$world_id"
+                        echo -e "   ${YELLOW}Server ID: ${NC}$server_id"
+                        ((counter++))
+                    fi
+                fi
+            done
+        fi
+    done
+
+    if [[ "$show_format" != "show" ]] && [ "$counter" -eq 1 ]; then
+        logit "INFO" "No worlds found in the directory."
+        return 1  # Error: no worlds found
+    else
+        logit "INFO" "Finished listing installed worlds."
+        return 0  # Success: worlds found and listed
+    fi
+}
+
+# Returns a count of how many worlds there are.
+installed_worlds() {
+    local server_dir world_dir
+    local count=0  # Counter for the number of worlds found
+
+    logit "DEBUG" "installed_worlds function started using PLAYERS_DIR = '$PLAYERS_DIR'"
+    for server_dir in "$PLAYERS_DIR"/*; do
+        if [ -d "$server_dir/worlds" ]; then
+            for world_dir in "$server_dir/worlds"/*; do
+                if [ -d "$world_dir" ] && [ -f "$world_dir/info.json" ]; then
+                    local world_name=$(jq -r '.value0.worldName' "$world_dir/info.json")
+                    local world_id=$(basename "$world_dir")
+                    
+                    # Log each world found
+                    logit "INFO" "World found - '$world_name' with world_id = '$world_id'"
+
+                    # Increment the world counter
+                    ((count++))
+                fi
+            done
+        fi
+    done
+
+    if [ $count -gt 0 ]; then
+        logit "INFO" "$count worlds found."
+    else
+        logit "INFO" "No worlds found."
+    fi
+
+    # Return the count of worlds found
+    echo $count
+    return 0
 }
 
 # This function checks to make sure that the user is not using "root" to install the server.
@@ -63,41 +144,38 @@ add_to_path() {
     fi
 }
 
-#Check if our dependencies are installed and check if sapiens is installed.
-get_dependency_status() {
-    local steamcmd_dir="$HOME/.local/share/Steam/steamcmd"
+# See if the Sapiens Server executable is installed
+sapiens_installed(){
+    # Check for sapiens executable
     local executable_name="linuxServer"
-    local log_file="$HOME/install.log"
-
-    # Check if log file exists and create it if it does not
-    if [ ! -f "$log_file" ]; then
-        touch "$log_file"
+    logit "DEBUG" "Checking if exists: $SAPIENS_DIR/$executable_name"
+    if [ -f "$SAPIENS_DIR/$executable_name" ]; then
+        # Set the Sapiens Version
+        SAPIENS_VERSION=$(get_sapiens_version)
+        logit "INFO" "$executable_name found in $SAPIENS_DIR"
+        logit "INFO" "Version: $SAPIENS_VERSION"
+        return 0
     else
-        : > "$log_file"  # Truncate the existing log file to start fresh
+        logit "WARN" "$executable_name not found in $SAPIENS_DIR"
+        return 1
     fi
+}
 
-    SAPIENS_INSTALLED="false"
+#Check if our dependencies are installed and check if sapiens is installed.
+dependencies_installed() {
     # Check for package dependencies by command availability
     for pkg in "${!DEPENDENCIES[@]}"; do
         # Capturing command output and suppressing console output
         if ! command_output=$(command -v "${DEPENDENCIES[$pkg]}" 2>/dev/null); then
-            echo "Missing dependency: $pkg (${DEPENDENCIES[$pkg]})" >> "$log_file"
+            logit "INFO" "Missing dependency: $pkg (${DEPENDENCIES[$pkg]})"
             return 1  # Return with error if a dependency is not installed
         else
             # Log the success of found commands to the log file
-            echo "${DEPENDENCIES[$pkg]} found" >> "$log_file"
+            logit "DEBUG" "${DEPENDENCIES[$pkg]} found"
         fi
     done
 
-    # Check for sapiens executable
-    if [ -f "$steamcmd_dir/$executable_name" ]; then
-        SAPIENS_INSTALLED="true"
-        logit "DEBUG" "$executable_name found in $steamcmd_dir"
-    else
-        logit "DEBUG" "$executable_name not found in $steamcmd_dir"
-
-    fi
-    logit "INFO" "SAPIENS_INSTALLED=$SAPIENS_INSTALLED"
+    return 0 # There were no missing dependencies
 }
 
 # Install the required dependencies.
@@ -127,6 +205,14 @@ upgrade_sapiens(){
     logit "INFO" "Running steamcmd and refreshing Sapiens Dedicated Server"
     # Run steamcmd with preconfigured Sapiens Server update script
     steamcmd +runscript ~/sapiens-server/steamupdate.txt
+}
+
+# Gets the current version of the Sapiens linuxServer executable
+get_sapiens_version() {
+    #Run the --help command on the server executable and cut out the version number
+    local version_line=$($SAPIENS_DIR/linuxServer --help | grep 'Version:')
+    SAPIENS_VERSION=$(echo "$version_line" | cut -d':' -f2 | xargs)
+    logit "INFO" "Sapiens linuxServer version $SAPIENS_VERSION"
 }
 
 # A little hack to fix the location of the steam client
@@ -159,25 +245,59 @@ patch_steam(){
 set_permissions(){
     # Make necessary scripts executable
     logit "DEBUG" "set_permissions() invoked"
-    chmod +x sapiens.sh start.sh backuplogs.sh
+    chmod +x sapiens.sh startworld.sh
 }
 
 # Function to select a world from the list
 select_world() {
-    local selection counter=${#display_lines[@]}
+    local server_dir world_dir world_name world_id server_id
+    local -a world_names world_ids server_ids
+    local selection counter=0
 
-    for line in "${display_lines[@]}"; do
-        echo "$line"
+    clear
+    echo -e "${BRIGHT_CYAN}Available Worlds:${NC}"
+    echo "----------------------------------------------------------------"
+    for server_dir in "$PLAYERS_DIR"/*; do
+        if [ -d "$server_dir/worlds" ]; then
+            for world_dir in "$server_dir/worlds"/*; do
+                if [ -d "$world_dir" ] && [ -f "$world_dir/info.json" ]; then
+                    world_id=$(basename "$world_dir")
+                    server_id=$(basename "$server_dir")
+                    world_name=$(jq -r '.value0.worldName' "$world_dir/info.json")
+
+                    # Increase counter and store details in arrays
+                    ((counter++))
+                    world_names[counter]="$world_name"
+                    world_ids[counter]="$world_id"
+                    server_ids[counter]="$server_id"
+
+                    # Display the world with a counter
+                    echo -e "${MAGENTA}$counter. ${CYAN}$world_name${NC}"
+                    echo -e "   ${YELLOW}World ID: ${NC}$world_id"
+                    echo -e "   ${YELLOW}Server ID: ${NC}$server_id"
+                fi
+            done
+        fi
     done
 
-    while true; do
-        echo "Enter the number corresponding to the world you want:"
-        read selection
+    # If no worlds are found
+    if [ $counter -eq 0 ]; then
+        logit "INFO" "No worlds found in the directory."
+        return 1  # Error: no worlds found
+    fi
 
-        if [[ $selection -ge 1 && $selection -le $counter ]]; then
-            SERVER_ID="${server_ids[$selection]}"
-            WORLD_ID="${world_ids[$selection]}"
+    # Prompt for selection
+    while true; do
+        echo "----------------------------------------------------------------"
+        echo "Enter the number corresponding to the world you want to select:"
+        read selection
+        if [[ $selection =~ ^[0-9]+$ ]] && (( selection >= 1 && selection <= counter )); then
             WORLD_NAME="${world_names[$selection]}"
+            WORLD_ID="${world_ids[$selection]}"
+            SERVER_ID="${server_ids[$selection]}"
+            logit "DEBUG" "Inside select_world - World selected : $WORLD_NAME"
+            logit "DEBUG" "Inside select_world - World ID       : $WORLD_ID"
+            logit "DEBUG" "Inside select_world - Server ID      : $SERVER_ID"
             return 0  # Valid selection
         else
             echo "Invalid selection. Please try again."
@@ -189,7 +309,7 @@ select_world() {
 create_world() {
     
     local new_world_default="Nameless Sapiens World"
-    local new_world_name = ""
+    local new_world_name
 
     read -p "World Name [$new_world_default]): " new_world_name
     if [ -z "$new_world_name" ]; then
@@ -197,10 +317,11 @@ create_world() {
         new_world_name=$new_world_default
     fi
     logit "INFO" "New world $new_world_name being created"
+    echo "The new world '$new_world_name' is being created, please wait..."
     
     # Create the world and grab the process pid
-    logit "INFO" "Creating new world: $GAME_DIR/linuxServer --server-id '$SERVER_ID' --new '$new_world_name'"
-    $GAME_DIR/linuxServer --server-id "$SERVER_ID" --new "$new_world_name" >/dev/null 2>&1 &
+    logit "INFO" "Creating new world: $SAPIENS_DIR/linuxServer --server-id '$SERVER_ID' --new '$new_world_name'"
+    $SAPIENS_DIR/linuxServer --server-id "$SERVER_ID" --new "$new_world_name" >/dev/null 2>&1 &
     local pid=$!
     sleep 5     # Wait a bit to make sure the world creation is complete
     kill $pid   # Kill the linuxServer process
@@ -233,36 +354,50 @@ create_world() {
     return 2  # WORLD_ID not found
 }
 
-refresh_worldlist() {
-    local server_dir world_dir
-    local counter=1
-    local world_found=false
+read_port() {
+    local prompt=$1
+    local default_port=$2
+    local input
 
-    for server_dir in "$PLAYERS_DIR"/*; do
-        if [ -d "$server_dir/worlds" ]; then
-            for world_dir in "$server_dir/worlds"/*; do
-                if [ -d "$world_dir" ] && [ -f "$world_dir/info.json" ]; then
-                    world_found=true
-                    local server_id=$(basename "$server_dir")
-                    local world_id=$(basename "$world_dir")
-                    local world_name=$(jq -r '.value0.worldName' "$world_dir/info.json")
+    # Prompt the user and read input
+    read -p "$prompt [$default_port]: " input
 
-                    server_ids[counter]=$server_id
-                    world_ids[counter]=$world_id
-                    world_names[counter]="$world_name"
-                    display_lines[counter]="    $counter. World Name: $world_name, World ID: $world_id"
-
-                    ((counter++))
-                fi
-            done
-        fi
-    done
-
-    if [ "$world_found" = true ]; then
-        logit "INFO" "refresh_worldlist found at least one world."
-        return 0  # Success: at least one world found
-    else
-        logit "INFO" "refresh_worldlist did not find any worlds."
-        return 1  # Error: no worlds found
-    fi
+    # Use the default if no input is provided
+    echo "${input:-$default_port}"
 }
+
+get_active_server_details(){
+    if yesno "Advertise Server to the public in-game?"; then
+        ADVERTISE="--advertise "
+        echo "Server will be advertised."
+    else
+        ADVERTISE=""
+        echo "Server will not be advertised."
+    fi
+
+    if yesno "If you don't mind helping the developer to fix bugs in Sapiens, do you want to send your log files on a crash?"; then
+        PROVIDE_LOGS="--yes "
+        echo "Log reporting Enabled."
+    else
+        PROVIDE_LOGS=""
+        echo "No reports will be sent to the developer on a crash."
+    fi
+
+    # Read UDP port from user or use default
+    echo ""
+    UDP_PORT=$(read_port "Enter UDP Port" "16161")
+
+    # Calculate the Steam port, which is UDP port + 1
+    STEAM_PORT=$((UDP_PORT + 1))
+
+    # Read HTTP port from user or use default
+    HTTP_PORT=$(read_port "Enter HTTP Port" "16168")
+
+    # Ensure the Steam port does not conflict with the HTTP port
+    while [ "$STEAM_PORT" -eq "$HTTP_PORT" ]; do
+        echo "Conflict detected: HTTP port ($HTTP_PORT) cannot be the same as Steam port ($STEAM_PORT)."
+        # Re-prompt for the HTTP port
+        HTTP_PORT=$(read_port "Enter a different HTTP Port" "16168")
+    done
+}
+

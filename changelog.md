@@ -1,3 +1,9 @@
+##1.0.0##
+- Updated enet log location and added sapservermgr.log
+- Refactored code
+- 
+
+
 ##0.4.1## - 2024-05-05
 - Made bug reporting options configurable.
 - Fixed placeholder descriptions for log_backups and world_backups.
