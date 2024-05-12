@@ -5,7 +5,7 @@
 
 # Source the required library scripts
 cd $HOME/sapiens-server
-required_files=("bootstrap.sh" "constants.sh" "manage_world.sh" "manage_server.sh" "database.sh")
+required_files=("bootstrap.sh" "constants.sh" "manage_world.sh" "manage_server.sh")
 for file in "${required_files[@]}"; do
     if ! source "$file"; then
         echo "[ERROR]: Failed to source $file. Ensure the file exists in the script directory and is readable."

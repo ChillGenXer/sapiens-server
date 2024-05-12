@@ -10,6 +10,7 @@ required_files=("bootstrap.sh" "config.sh" "constants.sh")
 for file in "${required_files[@]}"; do
     if ! source "$file"; then
         echo "[ERROR]: Failed to source $file. Ensure the file exists in the script directory and is readable."
+        echo "If 'config.sh' is missing run install.sh first."
         exit 1
     fi
 done
