@@ -105,7 +105,7 @@ backup_server() {
 # Use steamcmd to upgrade the Sapiens Dedicated Server
 upgrade_server() {
     logit "INFO" "Running: steamcmd +runscript ~/sapiens-server/steamupdate.txt"
-    steamcmd +runscript ~/sapiens-server/steamupdate.txt
+    steamcmd +runscript $HOME/sapiens-server/steamupdate.txt
 }
 
 # Open the screen session to see the server console

@@ -15,9 +15,12 @@ chmod +x minstall.sh startworld.sh update.sh
 
 ## Configuration ##
 
+Once installed you will need to create a new world, something like this:
+chillgenxer@mymachinename:~/.local/share/Steam/steamcmd/sapiens$ ./linuxServer --new "Test World" --server-id "chillgenxer"
+
 **minstall.sh & update.sh** - This is the path to the provided steamcmd script for updating Sapiens.  If you have moved these files this will need to be set. steamcmd wants the file where it runs, otherwise you specifically have to tell it where it is.
 
-``STEAM_UPDATE_SCRIPT="~/sapiens-server/minimal/steamupdate.txt"``
+``STEAM_UPDATE_SCRIPT="$HOME/sapiens-server/minimal/steamupdate.txt"``
 
 **startworld.sh** - The following defaults have been provided, if you want to use this script fill in your values here.
 
