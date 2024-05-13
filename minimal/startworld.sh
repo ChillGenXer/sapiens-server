@@ -5,8 +5,8 @@
 # Please note you have to create a world first, this script will not do it automatically.  
 # Run linuxServer --help to see the commands.
 
-WORLD_NAME="Test World"
-SERVER_ID="chillgenxer"      # This gets generated based on what you provide when you use the --new command to generate a world.
+WORLD_NAME="Test World"    # Name of your world.
+SERVER_ID=""               # You can optionally set this with the --new command when you create a new world.
 UDP_PORT="16161"           # Default UDP port. Port forwarding required for advertise.
 #STEAM_UDP_PORT="16162"    # This is not set manually but calculated as UDP_PORT + 1.  Port forwarding required for advertise.
 HTTP_PORT="16168"          # Default HTTP port. Port forwarding required for advertise.
