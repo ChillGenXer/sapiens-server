@@ -8,6 +8,11 @@ if it crashes.
 
 This package assumes you have an **Ubuntu 23.10 or greater**.  It hasn't been tested on other distributions.
 
+## Installation ##
+chmod +x minstall.sh startworld.sh update.sh
+./minstall.sh
+
+
 ## Configuration ##
 
 **minstall.sh & update.sh** - This is the path to the provided steamcmd script for updating Sapiens.  If you have moved these files this will need to be set. steamcmd wants the file where it runs, otherwise you specifically have to tell it where it is.
