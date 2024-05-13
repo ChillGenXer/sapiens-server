@@ -270,7 +270,7 @@ install_dependencies(){
 upgrade_sapiens(){
     echo "Running steamcmd and refreshing Sapiens Dedicated Server..."
     # Run steamcmd with preconfigured Sapiens Server update script
-    steamcmd +runscript ~/sapiens-server/steamupdate.txt
+    steamcmd +runscript $HOME/sapiens-server/steamupdate.txt
 }
 
 patch_steam(){
