@@ -19,7 +19,6 @@ declare -A DEPENDENCIES=(
     [steamcmd]=steamcmd     # Steam commandline tool for installing and updating the Sapiens server.
     [jq]=jq                 # Used for managing json files.
     [procps]=ps             # process grep
-    [sqlite3]=sqlite3       # The configuration database
 )
 
 # Gets a list of the worlds installed in the Sapiens data directory

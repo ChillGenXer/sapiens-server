@@ -3,3 +3,4 @@ rm config.sh
 rm start.sh
 rm functions.sh
 rm backuplogs.sh
+rm install.sh

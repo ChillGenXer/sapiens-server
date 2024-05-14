@@ -3,6 +3,7 @@ scrapbook.sh
 test.sh
 log_backups/
 world_backups/
+logs/
 test.sh
 sapservermgr.log
 activeworld.sh

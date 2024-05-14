@@ -2,6 +2,23 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Error code array to leverage bash script exit codes for better error handling.
 
+# Set global variables
+SCRIPT_NAME="Sapiens Linux Server Helper Scripts"
+SCRIPT_VERSION="1.0.0"
+GITHUB_URL="https://github.com/ChillGenXer/sapiens-server"
+SCRIPT_DIR="$HOME/sapiens-server"
+CONFIG_FILE="$SCRIPT_DIR/config.sh"
+LOG_DIR="$SCRIPT_DIR/logs"
+LOG_BACKUP_DIR="$SCRIPT_DIR/log_backups"
+BACKUP_DIR="$SCRIPT_DIR/world_backups"
+SCREEN_NAME="sapiens-server"
+SERVER_ID="sapserver"
+STEAMCMD_DIR="$HOME/.local/share/Steam/steamcmd"
+SAPIENS_DIR="$STEAMCMD_DIR/sapiens"
+GAME_DATA_DIR="$HOME/.local/share/majicjungle/sapiens"
+PLAYERS_DIR="$GAME_DATA_DIR/players"
+WORLDS_DIR="$PLAYERS_DIR/$SERVER_ID/worlds"
+
 # Check if the script is being run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     current_script=$(basename "${BASH_SOURCE[0]}")

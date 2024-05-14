@@ -6,11 +6,11 @@
 
 cd $HOME/sapiens-server
 
-required_files=("bootstrap.sh" "config.sh" "constants.sh")
+required_files=("constants.sh" "bootstrap.sh" "config.sh")
 for file in "${required_files[@]}"; do
     if ! source "$file"; then
         echo "[ERROR]: Failed to source $file. Ensure the file exists in the script directory and is readable."
-        echo "If 'config.sh' is missing run install.sh first."
+        echo "If 'config.sh' is missing run ./sapiens.sh install first."
         exit 1
     fi
 done

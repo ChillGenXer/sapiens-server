@@ -2,34 +2,40 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Initial setup and system functions.
 
+# Determine the name of the current or calling script
+current_script=$(basename "${BASH_SOURCE[0]}")
+caller_script=$(basename "${BASH_SOURCE[1]}")
+
 # Check if the script is being run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    current_script=$(basename "${BASH_SOURCE[0]}")
     echo "The script ($current_script) is a library file, and not meant to be run directly. Run sapiens.sh only."
-    logit "INFO" "Attempt to run $current_script directly detected.  Please use sapiens.sh for all operations."
     exit 1
 fi
 
-# Set global variables
-SCRIPT_NAME="Sapiens Linux Server Helper Scripts"
-SCRIPT_VERSION="1.0.0"
-GITHUB_URL="https://github.com/ChillGenXer/sapiens-server"
-SCRIPT_DIR="$HOME/sapiens-server"
-SAPSERVER_LOG="$SCRIPT_DIR/sapservermgr.log"
-CONFIG_FILE="$SCRIPT_DIR/config.sh"
-BACKUP_DIR="$SCRIPT_DIR/world_backups"
-LOG_BACKUP_DIR="$SCRIPT_DIR/log_backups"
-SCREEN_NAME="sapiens-server"
-SERVER_ID="sapserver"
-STEAMCMD_DIR="$HOME/.local/share/Steam/steamcmd"
-SAPIENS_DIR="$STEAMCMD_DIR/sapiens"
-GAME_DATA_DIR="$HOME/.local/share/majicjungle/sapiens"
-PLAYERS_DIR="$GAME_DATA_DIR/players"
-WORLDS_DIR="$PLAYERS_DIR/$SERVER_ID/worlds"
-
-#Host Server
+#Getting relevant IP addresses
 IP_ADDRESS=$(ip addr show $(ip route show default | awk '/default/ {print $5}') | awk '$1 == "inet" {gsub(/\/.*$/, "", $2); print $2}')
 PUBLIC_IP_ADDRESS=$(curl -s https://api.ipify.org)
+if [[ $? -ne 0 || -z "$PUBLIC_IP_ADDRESS" ]]; then
+    PUBLIC_IP_ADDRESS="UNKNOWN"
+fi
+
+# Ensure we have the necessary directories and log files
+mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_BACKUP_DIR"
+mkdir -p "$BACKUP_DIR"
+
+# Set the log file name based on the caller script
+timestamp=$(date +'%m-%d-%y-%H:%M:%S')
+if [[ "$caller_script" == "sapiens.sh" ]]; then
+    SAPSERVER_LOG="$LOG_DIR/sapiens_$timestamp.log"
+elif [[ "$caller_script" == "startserver.sh" ]]; then
+    SAPSERVER_LOG="$LOG_DIR/startserver_$timestamp.log"
+else
+    SAPSERVER_LOG="$LOG_DIR/sapiens_$timestamp.log"
+fi
+
+# Ensure the log file is created
+touch "$SAPSERVER_LOG"
 
 # Welcome screen
 splash_text() {
@@ -109,11 +115,6 @@ logit() {
         exit 1
     fi
 
-    # Check if the log file exists and create it if it does not
-    if [ ! -f "$SAPSERVER_LOG" ]; then
-        touch "$SAPSERVER_LOG"
-    fi
-
     # Check if the severity is valid
     local is_valid_severity=false
     for valid_severity in "${valid_severities[@]}"; do
@@ -140,23 +141,6 @@ logit() {
     if [ "$echo_flag" = "echo" ]; then
         echo "$timestamp [$severity]: $message"
     fi
-}
-
-# Checks to make sure logging directories are created
-log_dir_check(){
-    # Define the directory names
-    directories=("$LOG_BACKUP_DIR" "$BACKUP_DIR")
-
-    # Loop through each directory to check and create if necessary
-    for dir in "${directories[@]}"; do
-        if [ ! -e "$dir" ]; then
-            # If the directory does not exist, create it
-            logit "INFO" "Creating directory: $dir"
-            mkdir "$dir"
-        else
-            logit "DEBUG" "Directory exists: $dir"
-        fi
-    done
 }
 
 #Generate a configuration file
@@ -201,16 +185,5 @@ create_config() {
         logit "INFO" "Failed to create configuration file at $CONFIG_FILE"
         echo "Failed to create configuration file at $CONFIG_FILE"
         exit 1
-    fi
-}
-
-# This function ensures all needed folders are in place
-config_dir(){
-    local dir=$1
-    if [[ ! -d "$dir" ]]; then
-        logit "DEBUG" "Directory does not exist, creating: $dir"
-        mkdir -p "$dir"
-    else
-        logit "DEBUG" "Directory already exists: $dir"
     fi
 }
