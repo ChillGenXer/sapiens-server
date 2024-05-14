@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: manage the running world.
+# Description: This library script contains functions to manage the running world.
 
 # Check if the script is being run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

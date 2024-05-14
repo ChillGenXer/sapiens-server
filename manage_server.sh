@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: manage the software-level server.
+# Description: This script library is used to manage the software-level server.
 
 # Check if the script is being run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
@@ -354,18 +354,6 @@ create_world() {
     return 2  # WORLD_ID not found
 }
 
-read_port() {
-    local prompt=$1
-    local default_port=$2
-    local input
-
-    # Prompt the user and read input
-    read -p "$prompt [$default_port]: " input
-
-    # Use the default if no input is provided
-    echo "${input:-$default_port}"
-}
-
 get_active_server_details(){
     if yesno "Advertise Server to the public in-game?"; then
         ADVERTISE="--advertise "
@@ -382,6 +370,19 @@ get_active_server_details(){
         PROVIDE_LOGS=""
         echo "No reports will be sent to the developer on a crash."
     fi
+
+    # Helper function to read port from user or use default
+    read_port() {
+        local prompt=$1
+        local default_port=$2
+        local input
+
+        # Prompt the user and read input
+        read -p "$prompt [$default_port]: " input
+
+        # Use the default if no input is provided
+        echo "${input:-$default_port}"
+    }
 
     # Read UDP port from user or use default
     echo ""
