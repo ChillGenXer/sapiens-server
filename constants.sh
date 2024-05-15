@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: Error code array to leverage bash script exit codes for better error handling.
+# Description: Constants for the script package. 
 
-# Set global variables
-SCRIPT_NAME="Sapiens Linux Server Helper Scripts"
-SCRIPT_VERSION="1.0.0"
-GITHUB_URL="https://github.com/ChillGenXer/sapiens-server"
-SCRIPT_DIR="$HOME/sapiens-server"
-CONFIG_FILE="$SCRIPT_DIR/config.sh"
+# Script package constants
+WORLD_BACKUP_DIR="$SCRIPT_DIR/world_backups"
 LOG_DIR="$SCRIPT_DIR/logs"
 LOG_BACKUP_DIR="$SCRIPT_DIR/log_backups"
-BACKUP_DIR="$SCRIPT_DIR/world_backups"
+DEBUG_MODE="on"  # Set to "on" to enable debug logging, "off" to disable.
+SCRIPT_DIR="$HOME/sapiens-server"
+CONFIG_FILE="$SCRIPT_DIR/config.sh"
 SCREEN_NAME="sapiens-server"
-SERVER_ID="sapserver"
+
+# Steam locations (Server executable)
 STEAMCMD_DIR="$HOME/.local/share/Steam/steamcmd"
 SAPIENS_DIR="$STEAMCMD_DIR/sapiens"
+
+# MajicJungle locations (World Data)
+SERVER_ID="sapserver"
 GAME_DATA_DIR="$HOME/.local/share/majicjungle/sapiens"
 PLAYERS_DIR="$GAME_DATA_DIR/players"
 WORLDS_DIR="$PLAYERS_DIR/$SERVER_ID/worlds"
@@ -26,6 +28,13 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     logit "INFO" "Attempt to run $current_script directly detected.  Please use sapiens.sh for all operations."
     exit 1
 fi
+
+# Function to validate that the constants are set correctly.
+validate_constants() {
+    # TODO
+}
+
+# *****  System Constants *****
 
 # Regular Colors
 BLACK='\033[0;30m'        # Black

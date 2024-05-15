@@ -99,7 +99,7 @@ backup_server() {
     BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
     cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
     # Archive the specific world directory, including its name in the archive
-    tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
+    tar -czf "$WORLD_BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
 }
 
 # Use steamcmd to upgrade the Sapiens Dedicated Server

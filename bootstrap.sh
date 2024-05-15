@@ -22,7 +22,7 @@ fi
 # Ensure we have the necessary directories and log files
 mkdir -p "$LOG_DIR"
 mkdir -p "$LOG_BACKUP_DIR"
-mkdir -p "$BACKUP_DIR"
+mkdir -p "$WORLD_BACKUP_DIR"
 
 # Set the log file name based on the caller script
 timestamp=$(date +'%m-%d-%y-%H:%M:%S')
@@ -102,7 +102,6 @@ logit() {
     #   logit "ERROR" "Failed to start the server"
     #   logit "INFO" "Server started successfully" "echo"
 
-    local debug_mode="on"  # Set to "on" to enable debug logging, "off" to disable.
     local severity="$1"
     local message="$2"
     local echo_flag="${3:-}"  # Optional third parameter, defaults to empty if not provided
@@ -129,8 +128,8 @@ logit() {
         exit 1
     fi
 
-    # Check if debugging is off and severity is DEBUG, then skip logging
-    if [[ "$debug_mode" == "off" && "$severity" == "DEBUG" ]]; then
+    # Check if debugging is off and severity is DEBUG, then skip logging.  Set in constants.sh.
+    if [[ "$DEBUG_MODE" == "off" && "$severity" == "DEBUG" ]]; then
         return 0
     fi
 
