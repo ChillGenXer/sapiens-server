@@ -456,8 +456,7 @@ install_server(){
     splash_text
 
     # Try to shut down the screen session to handle if the config was deleted while a server was running.
-    echo ""
-    echo "ensuring there are no active server sessions..."
+    logit "INFO" "Ensuring there are no active server sessions..." "echo"
     stop_server "silent"
     echo ""
 
@@ -475,7 +474,7 @@ install_server(){
             logit "DEBUG" "Calling patch_steam"
             patch_steam             # Patch for the steam client.
             logit "DEBUG" "Calling upgrade_sapiens"
-            upgrade_sapiens         # Use steamcmd to update the sapiens executable.
+            upgrade_server         # Use steamcmd to update the sapiens executable.
             echo "Sapiens Server Manager installation successfully complete!"
             read -n 1 -s -r -p "Press any key to continue"
             echo ""  # Move to the next line after the key press
@@ -484,9 +483,11 @@ install_server(){
 
     # Check to see if the linuxServer executable is present
     if ! sapiens_installed; then
-        logit "INFO" "Sapiens linuxServer not found.  Installing."
-        echo "Sapiens linuxServer not found.  Installing."
-        rm $SAPIENS_BUILD_FILE
+        logit "INFO" "Sapiens linuxServer not found.  Installing." "echo"
+        # Get rid of the build file if it exists to make sure we are starting fresh.
+        if [[ -f "$SAPIENS_BUILD_FILE" ]]; then
+            rm "$SAPIENS_BUILD_FILE"
+        fi
         upgrade_server
     fi
 
