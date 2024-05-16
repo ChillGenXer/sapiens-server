@@ -147,12 +147,10 @@ add_to_path() {
 sapiens_installed(){
     # Check for sapiens executable
     local executable_name="linuxServer"
+
     logit "DEBUG" "Checking if exists: $SAPIENS_DIR/$executable_name"
     if [ -f "$SAPIENS_DIR/$executable_name" ]; then
-        # Set the Sapiens Version
-        SAPIENS_VERSION=$(get_sapiens_version)
-        logit "INFO" "$executable_name found in $SAPIENS_DIR"
-        logit "INFO" "Version: $SAPIENS_VERSION"
+        logit "INFO" "$executable_name version $(get_sapiens_version) found in $SAPIENS_DIR"
         return 0
     else
         logit "WARN" "$executable_name not found in $SAPIENS_DIR"
@@ -199,11 +197,60 @@ install_dependencies(){
 }
 
 # Uses a steamcmd config file where the sapiens appID is set. Despite the name, this can be used for a fresh install as well.
-upgrade_sapiens(){
-    echo "Running steamcmd and refreshing Sapiens Dedicated Server..."
-    logit "INFO" "Running steamcmd and refreshing Sapiens Dedicated Server"
-    # Run steamcmd with preconfigured Sapiens Server update script
-    steamcmd +runscript ~/sapiens-server/steamupdate.txt
+upgrade_server() {
+    # Function to get the current build id from steamcmd
+    get_current_buildid() {
+        local output=$(steamcmd +login anonymous +app_info_update 1 +app_info_print "2886350" +quit)
+        logit "DEBUG" "$output"
+        echo "$output" | grep -oP '"buildid"\s*"\K[^"]+'
+    }
+
+    # Function to read the stored build id from the file
+    read_stored_buildid() {
+        if [[ -f $SAPIENS_BUILD_FILE ]] && [[ -s $SAPIENS_BUILD_FILE ]]; then
+            cat $SAPIENS_BUILD_FILE
+        else
+            echo "0" # Default to 0 if the file doesn't exist or is empty
+        fi
+    }
+
+    # Function to write the build id to the file
+    write_stored_buildid() {
+        local buildid=$1
+        echo $buildid > $SAPIENS_BUILD_FILE
+    }
+
+    logit "INFO" "Checking for Sapiens Dedicated Server updates" "echo"
+
+    # Get the current build id
+    local current_buildid=$(get_current_buildid)
+
+    echo "Current build ID: $current_buildid"
+    logit "INFO" "Current Steamcmd build ID: $current_buildid"
+
+    # Read the stored build id from the file
+    local SAPIENS_BUILD_ID=$(read_stored_buildid)
+    logit "INFO" "Installed build ID: $SAPIENS_BUILD_ID"
+
+    # Compare build ids
+    if (( current_buildid > SAPIENS_BUILD_ID )); then
+        logit "INFO" "New Sapiens build available. Updating Sapiens Dedicated Server" "echo"
+
+        # Run steamcmd with the update script
+        steamcmd +runscript ~/sapiens-server/steamupdate.txt
+
+        # Get the new build id after the update
+        local new_buildid=$(get_current_buildid)
+
+        # Write the new build id to the file
+        write_stored_buildid $new_buildid
+
+        echo "Sapiens Dedicated Server updated to build ID: $new_buildid"
+        logit "INFO" "Sapiens Dedicated Server updated to build ID: $new_buildid"
+    else
+        echo "No update needed. Sapiens Dedicated Server is up to date."
+        logit "INFO" "No update needed. Sapiens Dedicated Server is up to date"
+    fi
 }
 
 # Gets the current version of the Sapiens linuxServer executable
@@ -211,7 +258,7 @@ get_sapiens_version() {
     #Run the --help command on the server executable and cut out the version number
     local version_line=$($SAPIENS_DIR/linuxServer --help | grep 'Version:')
     SAPIENS_VERSION=$(echo "$version_line" | cut -d':' -f2 | xargs)
-    logit "INFO" "Sapiens linuxServer version $SAPIENS_VERSION"
+    logit "INFO" "Sapiens Game Version: $SAPIENS_VERSION"
 }
 
 # A little hack to fix the location of the steam client
@@ -243,7 +290,7 @@ patch_steam(){
 # Sets permissions so the management scripts can run.
 set_permissions(){
     # Make necessary scripts executable
-    logit "DEBUG" "set_permissions() invoked"
+    logit "DEBUG" "set_permissions() invoked for sapiens.sh and startworld.sh"
     chmod +x sapiens.sh startworld.sh
 }
 
@@ -401,3 +448,112 @@ get_active_server_details(){
     done
 }
 
+install_server(){
+    logit "DEBUG" "*********************** install.sh started ***********************"
+    logit "DEBUG" "Calling check_for_root"; check_for_root
+
+    # Show the welcome screen
+    splash_text
+
+    # Try to shut down the screen session to handle if the config was deleted while a server was running.
+    echo ""
+    echo "ensuring there are no active server sessions..."
+    stop_server "silent"
+    echo ""
+
+    # Check to see if the software dependencies are in place
+    if ! dependencies_installed; then
+        logit "INFO" "Dependency check failed on linux account $(whoami)."
+        echo "The account $(whoami) does not have the necessary software installed to run the Sapiens linuxServer."
+        if ! yesno "Would you like to install it now?"; then
+            echo "Installation aborted."
+            logit "INFO" "Dependency installation aborted by user."
+            exit 0
+        else
+            logit "DEBUG" "Calling install_dependencies"
+            install_dependencies    # Install Steamcmd and the other required dependencies
+            logit "DEBUG" "Calling patch_steam"
+            patch_steam             # Patch for the steam client.
+            logit "DEBUG" "Calling upgrade_sapiens"
+            upgrade_sapiens         # Use steamcmd to update the sapiens executable.
+            echo "Sapiens Server Manager installation successfully complete!"
+            read -n 1 -s -r -p "Press any key to continue"
+            echo ""  # Move to the next line after the key press
+        fi
+    fi
+
+    # Check to see if the linuxServer executable is present
+    if ! sapiens_installed; then
+        logit "INFO" "Sapiens linuxServer not found.  Installing."
+        echo "Sapiens linuxServer not found.  Installing."
+        rm $SAPIENS_BUILD_FILE
+        upgrade_server
+    fi
+
+    # Ensure the needed directories exist
+    set_permissions
+
+    while true; do
+        # Call installed_worlds and store the count
+        world_count=$(installed_worlds)
+
+        echo -e "${BRIGHT_CYAN}-------------------------------------------------------${NC}"
+        # Check if the world count is greater than zero
+        if [[ $world_count -gt 0 ]]; then
+            echo -e "${BRIGHT_GREEN}***** $world_count detected installed worlds *****${NC}\n"
+            show_installed_worlds "clean"
+        else
+            echo -e "${RED}No installed worlds detected.${NC}"
+        fi
+        echo -e "${BRIGHT_CYAN}-------------------------------------------------------${NC}"
+        echo -e "${BRIGHT_YELLOW}1. Make an existing world active${NC}"
+        echo -e "${BRIGHT_YELLOW}2. Create a new world${NC}"
+        echo -e "${BRIGHT_YELLOW}0. Exit${NC}"
+        echo -e "${BRIGHT_CYAN}-------------------------------------------------------${NC}"
+        read -p "Enter your choice (1 existing, 2 for new, 0 to Exit): " user_choice
+
+        case $user_choice in
+            1)
+                select_world
+                if [ $? -eq 0 ]; then
+                    echo "World selected : $WORLD_NAME"
+                    echo "World ID       : $WORLD_ID"
+                    echo "Server ID      : $SERVER_ID"
+                    logit "INFO" "World selected: $WORLD_NAME"
+                    logit "INFO" "World ID      : $WORLD_ID"
+                    logit "INFO" "Server ID     : $SERVER_ID"
+                    # There was an existing world that will be used.
+                else
+                    echo "Failed to select a world."
+                    logit "DEBUG" "User made an invalid select_world menu choice."
+                    exit 1
+                fi
+                ;;
+            2)
+                # Calls function to create a new world
+                WORLD_ID=$(create_world)
+                if [[ $WORLD_ID ]]; then
+                    logit "INFO" "World created and selected: $WORLD_NAME (ID: $WORLD_ID)"
+                else
+                    logit "ERROR" "Failed to create a new world."
+                    continue # Skip the menu refresh if world creation failed
+                fi
+                ;;
+            0)
+                echo "Exiting program."
+                exit 0
+                ;;
+            *)
+                echo "Invalid choice. Please enter 1 or 2."
+                ;;
+        esac
+
+        # Break loop if not creating a new world to avoid showing the menu again unnecessarily
+        if [[ "$user_choice" != "2" ]]; then
+            break
+        fi
+    done
+
+    get_active_server_details
+    create_config
+}

@@ -77,7 +77,7 @@ while true; do
         break  # Exit the loop if the server stopped gracefully
     fi
     # Add a delay before restarting the server
-    sleep 5
+    sleep $SHUTDOWN_WAIT
 	logit "INFO" "Restarting world $WORLD_NAME..."
 done
 

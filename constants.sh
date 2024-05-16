@@ -3,17 +3,22 @@
 # Description: Constants for the script package. 
 
 # Script package constants
+SCRIPT_DIR="$HOME/sapiens-server"
+CONFIG_FILE="$SCRIPT_DIR/config.sh"
 WORLD_BACKUP_DIR="$SCRIPT_DIR/world_backups"
 LOG_DIR="$SCRIPT_DIR/logs"
 LOG_BACKUP_DIR="$SCRIPT_DIR/log_backups"
-DEBUG_MODE="on"  # Set to "on" to enable debug logging, "off" to disable.
-SCRIPT_DIR="$HOME/sapiens-server"
-CONFIG_FILE="$SCRIPT_DIR/config.sh"
+DEBUG_MODE="on"                                             # Set to "on" to enable debug logging, "off" to disable.
 SCREEN_NAME="sapiens-server"
+SHUTDOWN_WAIT=5                                             # How many seconds to wait for the screen session to end.
+SCRIPT_NAME="Sapiens Linux Server Helper Scripts"
+SCRIPT_VERSION="1.0.0"
+GITHUB_URL="https://github.com/ChillGenXer/sapiens-server"
 
 # Steam locations (Server executable)
 STEAMCMD_DIR="$HOME/.local/share/Steam/steamcmd"
 SAPIENS_DIR="$STEAMCMD_DIR/sapiens"
+SAPIENS_BUILD_FILE="$SCRIPT_DIR/sapiens_build_id.txt"
 
 # MajicJungle locations (World Data)
 SERVER_ID="sapserver"
@@ -32,6 +37,7 @@ fi
 # Function to validate that the constants are set correctly.
 validate_constants() {
     # TODO
+    sleep 0
 }
 
 # *****  System Constants *****

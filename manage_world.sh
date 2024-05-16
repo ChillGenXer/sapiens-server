@@ -32,9 +32,10 @@ server_status() {
 start_server() {
     server_status
     if [ $? -eq 0 ]; then
-        read -p "It appears there is already a Sapiens server running. Do you want to open the server console instead? (y/n): " choice
+        read -p "$(echo -e "${CYAN}It appears there is already a Sapiens server running. Do you want to open the server console instead? (${GREEN}y${YELLOW}/${RED}n${YELLOW}): ${NC}")" choice
         case $choice in
             y|Y)
+                logit "INFO" "Running open_console"
                 open_console
                 ;;
             n|N)
@@ -42,7 +43,7 @@ start_server() {
                 exit 0
                 ;;
             *)
-                logit "WARN" "start_server: Invalid choice. Exiting without starting a new session." "echo"
+                logit "WARN" "start_server: Taking '$choice' to mean quit without starting a new session." "echo"
                 exit 1
                 ;;
         esac
@@ -56,17 +57,16 @@ start_server() {
 stop_server() {
     # Valid arguments
     local silent_mode=$1    # Accepts an argument "silent" to set silent mode
-    local shutdown_wait=5   # TODO - Add this to configurable options
 
     # Attempt to shut down the server cleanly via screen.
-    screen -S $SCREEN_NAME -X stuff 'stop^M'
+    screen -S $SCREEN_NAME -X stuff 'stop^M' >/dev/null 2>&1
     
     # Wait for it to finish
     if [ "$silent_mode" != "silent" ]; then
-        logit "INFO" "Shutting down $WORLD_NAME..."
-        sleep $shutdown_wait
+        logit "INFO" "Silently shutting down $WORLD_NAME..."
+        sleep $SHUTDOWN_WAIT
     else
-        sleep $shutdown_wait
+        sleep $SHUTDOWN_WAIT
     fi
 
     # Check and terminate the screen session if it still exists
@@ -91,21 +91,23 @@ hardstop_server(){
 
 # Function to backup the world folder to the specified backup directory.
 backup_server() {
-    echo "Stopping server if necessary..."
-    stop_server
+    echo -e "${CYAN}Stopping server if necessary...${NC}"
+    stop_server "silent"
 
-    echo "Backing up the world '$WORLD_NAME'..."
-    TIMESTAMP=$(date +%Y%m%d%H%M%S)
-    BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
-    cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
-    # Archive the specific world directory, including its name in the archive
-    tar -czf "$WORLD_BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
-}
-
-# Use steamcmd to upgrade the Sapiens Dedicated Server
-upgrade_server() {
-    logit "INFO" "Running: steamcmd +runscript ~/sapiens-server/steamupdate.txt"
-    steamcmd +runscript $HOME/sapiens-server/steamupdate.txt
+    echo -e "Backing up the world ${BRIGHT_GREEN}'$WORLD_NAME'${NC}..."
+    local TIMESTAMP=$(date +%Y%m%d%H%M%S)
+    local BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
+    local PARENT_DIR="${WORLD_DIR%/*}"
+    
+    cd "$PARENT_DIR" || { echo -e "${RED}Failed to change directory to $PARENT_DIR${NC}"; exit 1; }
+    
+    # Perform the backup and check for errors
+    if tar -czf "$WORLD_BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"; then
+        echo -e "${GREEN}Backup complete!${NC}"
+    else
+        echo -e "${RED}Backup process failed!${NC}" >&2
+        exit 1
+    fi
 }
 
 # Open the screen session to see the server console
@@ -113,6 +115,15 @@ open_console() {
     # Call server_status to see if the screen session exists
     if server_status; then
         # If a screen session is found, resume it
+        echo ""
+        echo -e "${CYAN}You are about to enter the ${GREEN}Sapiens Server Console.${NC}"
+        echo -e "${YELLOW}To exit out of the console to the command prompt without stopping your world:${NC}"
+        echo ""
+        echo -e "${YELLOW}Hold ${BRIGHT_CYAN}${BOLD}CTRL${NC}${YELLOW} and then press ${BRIGHT_CYAN}${BOLD}A${NC} ${YELLOW}and ${BRIGHT_CYAN}${BOLD}D${NC}${YELLOW}.${NC}"
+        echo ""
+        echo -e "${GREEN}Press any key to open the console...${NC}"
+        # Wait for any key press
+        read -n 1 -s
         screen -r $SCREEN_NAME
     else
         # Let the user know.
