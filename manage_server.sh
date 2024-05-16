@@ -224,13 +224,11 @@ upgrade_server() {
 
     # Get the current build id
     local current_buildid=$(get_current_buildid)
-
-    echo "Current build ID: $current_buildid"
-    logit "INFO" "Current Steamcmd build ID: $current_buildid"
+    logit "INFO" "Sapiens Server Steamcmd build ID: $current_buildid" "echo"
 
     # Read the stored build id from the file
     local SAPIENS_BUILD_ID=$(read_stored_buildid)
-    logit "INFO" "Installed build ID: $SAPIENS_BUILD_ID"
+    logit "INFO" "Sapiens Server Installed build ID: $SAPIENS_BUILD_ID" "echo"
 
     # Compare build ids
     if (( current_buildid > SAPIENS_BUILD_ID )); then
@@ -245,11 +243,12 @@ upgrade_server() {
         # Write the new build id to the file
         write_stored_buildid $new_buildid
 
-        echo "Sapiens Dedicated Server updated to build ID: $new_buildid"
-        logit "INFO" "Sapiens Dedicated Server updated to build ID: $new_buildid"
+        logit "INFO" "Sapiens Dedicated Server updated to Build ID: $new_buildid" "echo"
+        logit "INFO" "Sapiens Game Version: $(get_sapiens_version)" "echo"
     else
-        echo "No update needed. Sapiens Dedicated Server is up to date."
-        logit "INFO" "No update needed. Sapiens Dedicated Server is up to date"
+        logit "INFO" "No update needed. Sapiens Dedicated Server is up to date."
+        logit "INFO" "Sapiens Dedicated Server Build ID: $SAPIENS_BUILD_ID" "echo"
+        logit "INFO" "Sapiens Game Version: $(get_sapiens_version)" "echo"
     fi
 }
 
@@ -262,30 +261,30 @@ get_sapiens_version() {
 }
 
 # A little hack to fix the location of the steam client
-patch_steam(){
-    echo "Patching mislocated steamclient.so..."
-    logit "DEBUG" "Patching mislocated steamclient.so"
+# patch_steam(){
+#     echo "Patching mislocated steamclient.so..."
+#     logit "DEBUG" "Patching mislocated steamclient.so"
 
-    # Create directory and link libraries
-    link_path="$HOME/.steam/sdk64/steamclient.so"
-    target_path="$HOME/.local/share/Steam/steamcmd/linux64/steamclient.so"
+#     # Create directory and link libraries
+#     link_path="$HOME/.steam/sdk64/steamclient.so"
+#     target_path="$HOME/.local/share/Steam/steamcmd/linux64/steamclient.so"
 
-    # Create the directory if it doesn't exist
-    mkdir -p "$(dirname "$link_path")"
-    logit "DEBUG" "patch_steam.mkdir dirname $link_path"
+#     # Create the directory if it doesn't exist
+#     mkdir -p "$(dirname "$link_path")"
+#     logit "DEBUG" "patch_steam.mkdir dirname $link_path"
 
-    # Check if the symbolic link already exists
-    if [ ! -L "$link_path" ]; then
-        # Create the symbolic link if it does not exist
-        ln -s "$target_path" "$link_path"
-        echo "Steam client patch complete."
-        logit "DEBUG" "Steam client patch complete."
+#     # Check if the symbolic link already exists
+#     if [ ! -L "$link_path" ]; then
+#         # Create the symbolic link if it does not exist
+#         ln -s "$target_path" "$link_path"
+#         echo "Steam client patch complete."
+#         logit "DEBUG" "Steam client patch complete."
 
-    else
-        echo "Symbolic link already exists, no need to patch."
-        logit "DEBUG" "Symbolic link already exists, no need to patch."
-    fi
-}
+#     else
+#         echo "Symbolic link already exists, no need to patch."
+#         logit "DEBUG" "Symbolic link already exists, no need to patch."
+#     fi
+# }
 
 # Sets permissions so the management scripts can run.
 set_permissions(){
@@ -471,8 +470,8 @@ install_server(){
         else
             logit "DEBUG" "Calling install_dependencies"
             install_dependencies    # Install Steamcmd and the other required dependencies
-            logit "DEBUG" "Calling patch_steam"
-            patch_steam             # Patch for the steam client.
+            # logit "DEBUG" "Calling patch_steam"
+            # patch_steam             # Patch for the steam client.
             logit "DEBUG" "Calling upgrade_sapiens"
             upgrade_server         # Use steamcmd to update the sapiens executable.
             echo "Sapiens Server Manager installation successfully complete!"
