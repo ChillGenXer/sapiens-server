@@ -256,8 +256,7 @@ upgrade_server() {
 get_sapiens_version() {
     #Run the --help command on the server executable and cut out the version number
     local version_line=$($SAPIENS_DIR/linuxServer --help | grep 'Version:')
-    SAPIENS_VERSION=$(echo "$version_line" | cut -d':' -f2 | xargs)
-    logit "INFO" "Sapiens Game Version: $SAPIENS_VERSION"
+    echo "$version_line" | cut -d':' -f2 | xargs
 }
 
 # A little hack to fix the location of the steam client
@@ -522,11 +521,11 @@ install_server(){
                     logit "INFO" "World selected: $WORLD_NAME"
                     logit "INFO" "World ID      : $WORLD_ID"
                     logit "INFO" "Server ID     : $SERVER_ID"
-                    # There was an existing world that will be used.
+                    break # Exit the loop on successful world selection
                 else
                     echo "Failed to select a world."
                     logit "DEBUG" "User made an invalid select_world menu choice."
-                    exit 1
+                    continue # Present the menu again
                 fi
                 ;;
             2)
@@ -534,9 +533,10 @@ install_server(){
                 WORLD_ID=$(create_world)
                 if [[ $WORLD_ID ]]; then
                     logit "INFO" "World created and selected: $WORLD_NAME (ID: $WORLD_ID)"
+                    break # Exit the loop on successful world creation
                 else
                     logit "ERROR" "Failed to create a new world."
-                    continue # Skip the menu refresh if world creation failed
+                    continue # Present the menu again if world creation failed
                 fi
                 ;;
             0)
@@ -545,15 +545,10 @@ install_server(){
                 ;;
             *)
                 echo "Invalid choice. Please enter 1 or 2."
+                continue # Invalid choice, present the menu again
                 ;;
         esac
-
-        # Break loop if not creating a new world to avoid showing the menu again unnecessarily
-        if [[ "$user_choice" != "2" ]]; then
-            break
-        fi
     done
-
     get_active_server_details
     create_config
 }
