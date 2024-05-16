@@ -21,6 +21,24 @@ declare -A DEPENDENCIES=(
     [procps]=ps             # process grep
 )
 
+active_world_summary(){
+    # Assemble the server information
+    echo "---------------------------------------------------------------------"
+    echo -e "${BLUE}World Name${NC}                : $WORLD_NAME"
+    echo -e "${BLUE}Local IP Address${NC}          : $IP_ADDRESS"
+    echo -e "${BLUE}Your Public IP Address${NC}    : $PUBLIC_IP_ADDRESS"
+    echo -e "${BLUE}UDP Port${NC}                  : $UDP_PORT"
+    echo -e "${BLUE}Steam Port${NC}                : $((UDP_PORT + 1))"  # Calculate Steam port on the fly
+    echo -e "${BLUE}HTTP Port${NC}                 : $HTTP_PORT"
+    echo -e "${BLUE}Advertising In-Game${NC}       : $( [ "$ADVERTISE" == "--advertise " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
+    echo -e "${BLUE}Send logs on crash${NC}        : $( [ "$SEND_LOGS" == "--yes " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
+    echo -e "---------------------------------------------------------------------"
+    echo -e "If you intend to make your server public, please ensure you have the"
+    echo -e "ports above port forwarded on your router to the Local IP Address."
+    echo -e "The public IP will be used to connect outside your local network."
+    echo ""
+}
+
 # Gets a list of the worlds installed in the Sapiens data directory
 show_installed_worlds() {
     local show_format=$1
@@ -39,8 +57,8 @@ show_installed_worlds() {
                     if [[ "$show_format" == "clean" ]]; then
                         # Display without counter, with color
                         echo -e "${CYAN}$world_name${NC}"
-                        echo -e "   ${YELLOW}World ID  : ${NC}$world_id"
-                        echo -e "   ${YELLOW}Server ID : ${NC}$server_id"
+                        # echo -e "   ${YELLOW}World ID  : ${NC}$world_id"
+                        # echo -e "   ${YELLOW}Server ID : ${NC}$server_id"
                     else
                         # Display with counter, with color
                         echo -e "${MAGENTA}$counter. ${CYAN}$world_name${NC}"
@@ -259,32 +277,6 @@ get_sapiens_version() {
     echo "$version_line" | cut -d':' -f2 | xargs
 }
 
-# A little hack to fix the location of the steam client
-# patch_steam(){
-#     echo "Patching mislocated steamclient.so..."
-#     logit "DEBUG" "Patching mislocated steamclient.so"
-
-#     # Create directory and link libraries
-#     link_path="$HOME/.steam/sdk64/steamclient.so"
-#     target_path="$HOME/.local/share/Steam/steamcmd/linux64/steamclient.so"
-
-#     # Create the directory if it doesn't exist
-#     mkdir -p "$(dirname "$link_path")"
-#     logit "DEBUG" "patch_steam.mkdir dirname $link_path"
-
-#     # Check if the symbolic link already exists
-#     if [ ! -L "$link_path" ]; then
-#         # Create the symbolic link if it does not exist
-#         ln -s "$target_path" "$link_path"
-#         echo "Steam client patch complete."
-#         logit "DEBUG" "Steam client patch complete."
-
-#     else
-#         echo "Symbolic link already exists, no need to patch."
-#         logit "DEBUG" "Symbolic link already exists, no need to patch."
-#     fi
-# }
-
 # Sets permissions so the management scripts can run.
 set_permissions(){
     # Make necessary scripts executable
@@ -351,17 +343,8 @@ select_world() {
 
 # Create a new world
 create_world() {
-    
-    local new_world_default="Nameless Sapiens World"
-    local new_world_name
+    local world_to_create=$1
 
-    read -p "World Name [$new_world_default]): " new_world_name
-    if [ -z "$new_world_name" ]; then
-        logit "DEBUG" "User chose default world name $new_world_name"
-        new_world_name=$new_world_default
-    fi
-    logit "INFO" "New world $new_world_name being created"
-    echo "The new world '$new_world_name' is being created, please wait..."
     
     # Create the world and grab the process pid
     logit "INFO" "Creating new world: $SAPIENS_DIR/linuxServer --server-id '$SERVER_ID' --new '$new_world_name'"
@@ -399,6 +382,7 @@ create_world() {
 }
 
 get_active_server_details(){
+    echo ""
     if yesno "Advertise Server to the public in-game?"; then
         ADVERTISE="--advertise "
         echo "Server will be advertised."
@@ -407,7 +391,9 @@ get_active_server_details(){
         echo "Server will not be advertised."
     fi
 
-    if yesno "If you don't mind helping the developer to fix bugs in Sapiens, do you want to send your log files on a crash?"; then
+    echo ""
+    echo "If you don't mind helping the developer to fix bugs in"
+    if yesno "Sapiens, do you want to send your log files on a crash?"; then
         PROVIDE_LOGS="--yes "
         echo "Log reporting Enabled."
     else
@@ -529,8 +515,19 @@ install_server(){
                 fi
                 ;;
             2)
+                # Get a name for the new world and create it.
+                local new_world_default="Nameless Sapiens World"
+                local new_world_name
+
+                read -p "World Name [$new_world_default]): " new_world_name
+                if [ -z "$new_world_name" ]; then
+                    logit "DEBUG" "User chose default world name $new_world_name"
+                    new_world_name=$new_world_default
+                fi
+                logit "INFO" "New world $new_world_name being created" "echo"
+                echo "The new world '$new_world_name' is being created, please wait..."
                 # Calls function to create a new world
-                WORLD_ID=$(create_world)
+                WORLD_ID=$(create_world "$new_world_name")
                 if [[ $WORLD_ID ]]; then
                     logit "INFO" "World created and selected: $WORLD_NAME (ID: $WORLD_ID)"
                     break # Exit the loop on successful world creation
@@ -551,4 +548,7 @@ install_server(){
     done
     get_active_server_details
     create_config
+    clear
+    echo "$WORLD_NAME successfully activated."
+    active_world_summary
 }
