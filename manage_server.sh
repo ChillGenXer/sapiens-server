@@ -430,18 +430,18 @@ install_server(){
 
     # Check to see if the software dependencies are in place
     if ! dependencies_installed; then
-        logit "INFO" "Dependency check failed on linux account $(whoami)."
-        echo "The account $(whoami) does not have the necessary software installed to run the Sapiens linuxServer."
+        logit "INFO" "install_server: Dependency check failed on linux account $(whoami)."
+        echo -e "The account ${CYAN}$(whoami)${NC} does not have the necessary software installed to run the Sapiens linuxServer."
         if ! yesno "Would you like to install it now?"; then
             echo "Installation aborted."
-            logit "INFO" "Dependency installation aborted by user."
+            logit "INFO" "install_server: Dependency installation aborted by user."
             exit 0
         else
-            logit "DEBUG" "Calling install_dependencies"
+            logit "DEBUG" "install_server: Calling install_dependencies"
             install_dependencies    # Install Steamcmd and the other required dependencies
             # logit "DEBUG" "Calling patch_steam"
             # patch_steam             # Patch for the steam client.
-            logit "DEBUG" "Calling upgrade_sapiens"
+            logit "DEBUG" "install_server: Calling upgrade_sapiens"
             upgrade_server         # Use steamcmd to update the sapiens executable.
             echo "Sapiens Server Manager installation successfully complete!"
             read -n 1 -s -r -p "Press any key to continue"
@@ -459,7 +459,8 @@ install_server(){
         upgrade_server
     fi
 
-    # Ensure the needed directories exist
+    # Set permissions to make scripts executable
+    logit "INFO" "install_server: call set_permissions
     set_permissions
 
     while true; do
