@@ -22,7 +22,7 @@ done
 
 # Some of the command line arguments require the config file to be set.  If it is not found, exit with an error.
 case $1 in
-    start|stop|hardstop|restart|autorestart|backup|upgrade|console)
+    start|stop|hardstop|restart|autorestart|backup|upgrade|console|broadcast)
         if [ -f "$CONFIG_FILE" ]; then
             source "$CONFIG_FILE"
         else
@@ -52,7 +52,7 @@ case $1 in
         ;;
     restart)
         logit "INFO" "Restarting server"
-        broadcast_message("Server is being restarted...")
+        broadcast_message "Server is being restarted..."
         stop_world             # manage_world.sh
         start_world            # manage_world.sh
         ;;
@@ -67,6 +67,9 @@ case $1 in
         ;;
     console)
         open_console
+        ;;
+    broadcast)
+        broadcast_message "$2"
         ;;
     *)
         clear

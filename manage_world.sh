@@ -10,22 +10,36 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     exit 1
 fi
 
+# Attempts to determine if the server is running.
 world_status() {
-    # Checks to see if there is an active screen session, implying the server is up
-    #TODO Should probably check for the linuxServer process too to make this more robust
+    # Check if the world running file exists
+    if [ ! -f "$WORLD_RUNNING_FILE" ]; then
+        logit "WARN" "world_status: $WORLD_RUNNING_FILE does not exist, server is not running."
+        return 1
+    fi
 
     # Check if a screen session with the specified name exists
     screen -ls | grep -q "$SCREEN_NAME"
-    local status=$?  # Capture the exit code of the grep command
+    local screen_status=$?  # Capture the exit code of the grep command
 
-    # Log the status before exiting the function
-    if [ $status -eq 0 ]; then
-        logit "INFO" "world_status is reporting a screen session $SCREEN_NAME found, so server is probably running."
+    # Check if the linuxServer process is running
+    pgrep -x "linuxServer" > /dev/null
+    local process_status=$?  # Capture the exit code of the pgrep command
+
+    # Determine the combined status based on the file, screen session, and process
+    if [ $screen_status -eq 0 ] && [ $process_status -eq 0 ]; then
+        logit "INFO" "world_status: $WORLD_RUNNING_FILE exists, screen session $SCREEN_NAME found, and linuxServer process is running. Server is running."
+        return 0
+    elif [ $screen_status -eq 0 ] && [ $process_status -ne 0 ]; then
+        logit "WARN" "world_status: $WORLD_RUNNING_FILE exists, screen session $SCREEN_NAME found, but linuxServer process is not running."
+        return 2
+    elif [ $screen_status -ne 0 ] && [ $process_status -eq 0 ]; then
+        logit "WARN" "world_status: $WORLD_RUNNING_FILE exists, but screen session $SCREEN_NAME is not found, and linuxServer process is running."
+        return 3
     else
-        logit "WARN" "world_status was unable to find a screen session named $SCREEN_NAME, server is probably not running."
+        logit "WARN" "world_status: $WORLD_RUNNING_FILE exists but neither screen session $SCREEN_NAME nor linuxServer process are running."
+        return 1
     fi
-
-    return $status  # Explicitly return the captured exit code
 }
 
 # Starts the dedicated server in a screen session

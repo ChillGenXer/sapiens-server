@@ -166,6 +166,7 @@ create_config() {
 
     config_content+="# World Locations\n"
     config_content+="WORLD_DIR=\"$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID\"\n"
+    config_content+="WORLD_RUNNING_FILE=\"$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/serverRunning.txt\"\n"
     config_content+="WORLD_CONFIG_LUA=\"$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/config.lua\"\n"
     config_content+="WORLD_INFO=\"$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/info.json\"\n"
     config_content+="ENET_LOG=\"$PLAYERS_DIR/$SERVER_ID/worlds/$WORLD_ID/enetServerLog.log\"\n"

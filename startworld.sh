@@ -69,16 +69,22 @@ while true; do
     if [ $status -ne 0 ]; then
         # Server crashed.  Back up the logs
         logit "ERROR" "Fatal Error: World '$WORLD_NAME' crashed with code $status."
-        logit "WARN" "Backing up logs and restarting in 5 seconds..."       
+        logit "INFO" "Backing up logs and restarting in 5 seconds..."       
         cd $HOME/sapiens-server; backup_logs
     else
-        logit "INFO" "World '$WORLD_NAME' stopped gracefully with exit code $status."
-        cd $HOME/sapiens-server; backup_logs
-        break  # Exit the loop if the server stopped gracefully
+        # Additional check to see if WORLD_RUNNING_FILE still exists
+        if [ -f "$WORLD_RUNNING_FILE" ]; then
+            logit "ERROR" "World '$WORLD_NAME' stopped with exit code $status, but $WORLD_RUNNING_FILE still exists. Assuming crash and restarting."
+            cd $HOME/sapiens-server; backup_logs
+        else
+            logit "INFO" "World '$WORLD_NAME' stopped gracefully with exit code $status."
+            cd $HOME/sapiens-server; backup_logs
+            break  # Exit the loop if the server stopped gracefully and WORLD_RUNNING_FILE does not exist
+        fi
     fi
     # Add a delay before restarting the server
     sleep $SHUTDOWN_WAIT
-	logit "INFO" "Restarting world $WORLD_NAME..."
+    logit "INFO" "Restarting world $WORLD_NAME..."
 done
 
 
