@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: This script library is used to manage the software-level server.
+# Description: This script library is used to manage the software-level Steam Sapiens server.
 
 # Check if the script is being run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
@@ -20,6 +20,24 @@ declare -A DEPENDENCIES=(
     [procps]=ps             # process grep
 )
 
+# This function checks to make sure that the user is not using "root" to install the server.
+check_for_root() {
+    if [ "$EUID" -eq 0 ]; then
+        logit "ERROR" "root user detected.  Exiting."
+        echo "The Sapiens dedicated server should not be run as the root user. Please create a new user to run the server that has sudo access."
+        echo "The user 'sapserver' is used in the instructions, you can create it like this logged in as root (as you are now):"
+        echo ""
+        echo "  adduser sapserver"
+        echo "  usermod -aG sudo sapserver"
+        echo ""
+        echo "Once this user has been created log in as that user, get this project and run this script again."
+        echo ""
+        echo "git clone https://github.com/ChillGenXer/sapiens-server.git"
+        exit 1
+    fi
+}
+
+# Prints out information about the currently active world.
 active_world_summary(){
     # Assemble the server information
     echo "---------------------------------------------------------------------"
@@ -365,24 +383,24 @@ create_world() {
     return 2  # WORLD_ID not found
 }
 
-get_active_server_details(){
+configure_world(){
     echo ""
     if yesno "Advertise Server to the public in-game?"; then
         ADVERTISE="--advertise "
-        echo "Server will be advertised."
+        echo -e "${GREEN}Server will be advertised.${NC}"
     else
         ADVERTISE=""
-        echo "Server will not be advertised."
+        echo "${RED}Server will not be advertised.${NC}"
     fi
 
     echo ""
     echo "If you don't mind helping the developer to fix bugs in"
     if yesno "Sapiens, do you want to send your log files on a crash?"; then
         PROVIDE_LOGS="--yes "
-        echo "Log reporting Enabled."
+        echo "${GREEN}Log reporting Enabled.${NC}"
     else
         PROVIDE_LOGS=""
-        echo "No reports will be sent to the developer on a crash."
+        echo "${RED}No reports will be sent to the developer on a crash.${NC}"
     fi
 
     # Helper function to read port from user or use default
@@ -416,6 +434,7 @@ get_active_server_details(){
     done
 }
 
+# This is the inital sequence to check for dependencies, and select a world to run.
 install_server(){
     logit "DEBUG" "*********************** install.sh started ***********************"
     logit "DEBUG" "Calling check_for_root"; check_for_root
@@ -531,26 +550,10 @@ install_server(){
                 ;;
         esac
     done
-    get_active_server_details
+    configure_world
     create_config
     clear
     echo "$WORLD_NAME successfully activated."
     active_world_summary
 }
 
-# This function checks to make sure that the user is not using "root" to install the server.
-check_for_root() {
-    if [ "$EUID" -eq 0 ]; then
-        logit "ERROR" "root user detected.  Exiting."
-        echo "The Sapiens dedicated server should not be run as the root user. Please create a new user to run the server that has sudo access."
-        echo "The user 'sapserver' is used in the instructions, you can create it like this logged in as root (as you are now):"
-        echo ""
-        echo "  adduser sapserver"
-        echo "  usermod -aG sudo sapserver"
-        echo ""
-        echo "Once this user has been created log in as that user, get this project and run this script again."
-        echo ""
-        echo "git clone https://github.com/ChillGenXer/sapiens-server.git"
-        exit 1
-    fi
-}
