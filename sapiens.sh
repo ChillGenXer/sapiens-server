@@ -5,7 +5,7 @@
 
 # Check if the script is running with Bash
 if [ -z "$BASH_VERSION" ]; then
-  echo "This script must be run with Bash.  Please start with ./sapiens.sh arg."
+  echo "This script must be run with Bash.  Please start with ./sapiens.sh 'command'."
   exit 1
 fi
 
@@ -22,7 +22,7 @@ done
 
 # Some of the command line arguments require the config file to be set.  If it is not found, exit with an error.
 case $1 in
-    start|stop|hardstop|restart|autorestart|backup|upgrade|console|broadcast)
+    start|stop|hardstop|restart|autorestart|backup|upgrade|console|broadcast|info)
         if [ -f "$CONFIG_FILE" ]; then
             source "$CONFIG_FILE"
         else
@@ -37,7 +37,7 @@ case $1 in
 esac
 
 case $1 in
-    install)
+    config)
         install_server
         ;;
     start)
@@ -71,25 +71,32 @@ case $1 in
     broadcast)
         broadcast_message "$2"
         ;;
+    info)
+        active_world_summary
+        ;;
     *)
         clear
-        echo "$SCRIPT_NAME"
-        echo "Script Version: $SCRIPT_VERSION"
-        echo "Author: chillgenxer@chillgenxer.com"
-        echo "GitHub: $GITHUB_URL"
+        echo -e "${CYAN}$SCRIPT_NAME${NC}"
+        echo -e "${BRIGHT_GREEN}Script Version : $SCRIPT_VERSION${NC}"
+        echo -e "${BRIGHT_GREEN}Author         : chillgenxer@chillgenxer.com${NC}"
+        echo -e "${BRIGHT_GREEN}GitHub         : $GITHUB_URL${NC}"
         echo ""
-        echo "Run './sapiens.sh install' to install dependencies and the Sapiens Server."
+        echo -e "Run '${CYAN}./sapiens.sh${NC} ${GREEN}config${NC}' to install the Sapiens server, and to select an active world."
         echo ""
         echo "Usage examples:"
         echo "---------------"
-        echo "./sapiens.sh start - starts your world in the background."
-        echo "./sapiens.sh console - Bring the running world's console. To exit without stopping the server hold CTRL and type A D."        
-        echo "./sapiens.sh stop - Stops the world."
-        echo "./sapiens.sh hardstop - Stops the world and cancels any autorestart setting."
-        echo "./sapiens.sh restart - Manually restart the server. Good to use if things are getting laggy."
-        echo "./sapiens.sh autorestart [0-24] - Automatically restart the world at the specified hour interval, 0 cancels."
-        echo "./sapiens.sh upgrade - Upgrade to the latest version of the Sapiens server executable from Steam."
-        echo "./sapiens.sh backup - Stops the world and backs it up to the backup folder."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}start${NC} - Starts the active world in the background."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}console${NC} - Open world's console. To exit without stopping the server hold CTRL and type A D."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}stop${NC} - Stops the world."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}hardstop${NC} - Stops the world and cancels any autorestart setting."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}restart${NC} - Manually restart the server. Good to use if things are getting laggy."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}autorestart [0-24]${NC} - Automatically restart the world at the specified hour interval, 0 cancels."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}upgrade${NC} - Upgrade to the latest version of the Sapiens server executable from Steam."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}backup${NC} - Stops the world and backs it up to the backup folder."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}config${NC} - Select and configure the active world (does initial install if required)."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}info${NC} - Show information about the active world."
+        echo ""
+        echo -e "${BRIGHT_RED}If you have any issues please raise them at ${GREEN}$GITHUB_URL/issues${NC}"
         echo ""
         exit 1
         ;;

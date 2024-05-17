@@ -2,12 +2,9 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: Initial setup and system functions.
 
-# Determine the name of the current or calling script
-current_script=$(basename "${BASH_SOURCE[0]}")
-caller_script=$(basename "${BASH_SOURCE[1]}")
-
 # Check if the script is being run directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+current_script=$(basename "${BASH_SOURCE[0]}")
+if [[ "$current_script" == "$(basename "$0")" ]]; then
     echo "The script ($current_script) is a library file, and not meant to be run directly. Run sapiens.sh only."
     exit 1
 fi
@@ -19,23 +16,32 @@ if [[ $? -ne 0 || -z "$PUBLIC_IP_ADDRESS" ]]; then
     PUBLIC_IP_ADDRESS="UNKNOWN"
 fi
 
-# Ensure we have the necessary directories and log files
-mkdir -p "$LOG_DIR"
-mkdir -p "$LOG_BACKUP_DIR"
-mkdir -p "$WORLD_BACKUP_DIR"
+# Function to set up logging
+init_logit() {
+    
+    # Ensure we have the necessary directories and log files
+    mkdir -p "$LOG_DIR"
+    mkdir -p "$LOG_BACKUP_DIR"
+    mkdir -p "$WORLD_BACKUP_DIR"
 
-# Set the log file name based on the caller script
-timestamp=$(date +'%m-%d-%y-%H:%M:%S')
-if [[ "$caller_script" == "sapiens.sh" ]]; then
-    SAPSERVER_LOG="$LOG_DIR/sapiens_$timestamp.log"
-elif [[ "$caller_script" == "startserver.sh" ]]; then
-    SAPSERVER_LOG="$LOG_DIR/startserver_$timestamp.log"
-else
-    SAPSERVER_LOG="$LOG_DIR/sapiens_$timestamp.log"
-fi
+    local current_date
+    current_date=$(date +'%m-%d-%y')
 
-# Ensure the log file is created
-touch "$SAPSERVER_LOG"
+    # Check if a logfile with the current date exists
+    local existing_logfile
+    existing_logfile=$(find "$LOG_DIR" -name "*_$current_date*.log" -print -quit)
+
+    # If a logfile with the current date exists, use it, otherwise create a new one
+    if [ -n "$existing_logfile" ]; then
+        SAPSERVER_LOG="$existing_logfile"
+    else
+        local timestamp
+        timestamp=$(date +'%m-%d-%y-%H:%M:%S')
+        SAPSERVER_LOG="$LOG_DIR/sapiens_$timestamp.log"
+    fi
+}
+
+init_logit # This might get reused so just making it a function and calling it immediately.
 
 # Welcome screen
 splash_text() {

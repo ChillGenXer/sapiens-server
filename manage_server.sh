@@ -5,8 +5,7 @@
 # Check if the script is being run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     current_script=$(basename "${BASH_SOURCE[0]}")
-    echo "The script ($current_script) is a library file, and not meant to be run directly. Run sapiens.sh only."
-    logit "INFO" "Attempt to run $current_script directly detected.  Please use sapiens.sh for all operations."
+    logit "WARN" "manage_server.sh: This script is a library file, and not meant to be run directly. Run sapiens.sh only." "echo"
     exit 1
 fi
 
@@ -24,17 +23,21 @@ declare -A DEPENDENCIES=(
 active_world_summary(){
     # Assemble the server information
     echo "---------------------------------------------------------------------"
-    echo -e "${BLUE}World Name${NC}                : $WORLD_NAME"
-    echo -e "${BLUE}Local IP Address${NC}          : $IP_ADDRESS"
-    echo -e "${BLUE}Your Public IP Address${NC}    : $PUBLIC_IP_ADDRESS"
-    echo -e "${BLUE}UDP Port${NC}                  : $UDP_PORT"
-    echo -e "${BLUE}Steam Port${NC}                : $((UDP_PORT + 1))"  # Calculate Steam port on the fly
-    echo -e "${BLUE}HTTP Port${NC}                 : $HTTP_PORT"
-    echo -e "${BLUE}Advertising In-Game${NC}       : $( [ "$ADVERTISE" == "--advertise " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
-    echo -e "${BLUE}Send logs on crash${NC}        : $( [ "$SEND_LOGS" == "--yes " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
+    echo -e "${BLUE}World Name${NC}             : ${BRIGHT_GREEN}$WORLD_NAME${NC}"
+    echo -e "${BLUE}World ID${NC}               : $WORLD_ID"
+    echo -e "${BLUE}Sapiens Version${NC}        : ${BLUE}$(get_sapiens_version)${NC}"
+    echo -e "${BLUE}Local IP Address${NC}       : $IP_ADDRESS"
+    echo -e "${BLUE}Your Public IP Address${NC} : $PUBLIC_IP_ADDRESS"
+    echo -e "${BLUE}UDP Port${NC}               : $UDP_PORT"
+    echo -e "${BLUE}Steam Port${NC}             : $((UDP_PORT + 1))"  # Calculate Steam port on the fly
+    echo -e "${BLUE}HTTP Port${NC}              : $HTTP_PORT"
+    echo -e "${BLUE}Advertising In-Game${NC}    : $( [ "$ADVERTISE" == "--advertise " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
+    echo -e "${BLUE}Send logs on crash${NC}     : $( [ "$SEND_LOGS" == "--yes " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
     echo -e "---------------------------------------------------------------------"
+    echo -e "To change this configuration, run ${CYAN}./sapiens.sh${NC} ${GREEN}config${NC}"
+    echo ""
     echo -e "If you intend to make your server public, please ensure you have the"
-    echo -e "ports above port forwarded on your router to the Local IP Address."
+    echo -e "ports above forwarded from your router to your Local IP Address."
     echo -e "The public IP will be used to connect outside your local network."
     echo ""
 }
@@ -247,8 +250,7 @@ upgrade_server() {
         logit "INFO" "Sapiens Dedicated Server updated to Build ID: $new_buildid" "echo"
         logit "INFO" "Sapiens Game Version: $(get_sapiens_version)" "echo"
     else
-        logit "INFO" "No update needed. Sapiens Dedicated Server is up to date."
-        logit "INFO" "Sapiens Dedicated Server Build ID: $SAPIENS_BUILD_ID" "echo"
+        logit "INFO" "No update needed. Sapiens Dedicated Server is up to date." "echo"
         logit "INFO" "Sapiens Game Version: $(get_sapiens_version)" "echo"
     fi
 }

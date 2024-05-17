@@ -49,7 +49,7 @@ start_world() {
         read -p "$(echo -e "${CYAN}It appears there is already a Sapiens server running. Do you want to open the server console instead? (${GREEN}y${YELLOW}/${RED}n${YELLOW}): ${NC}")" choice
         case $choice in
             y|Y)
-                logit "INFO" "Running open_console"
+                logit "INFO" "start_world: Running open_console"
                 open_console
                 ;;
             n|N)
@@ -63,7 +63,7 @@ start_world() {
         esac
     else
         screen -dmS $SCREEN_NAME /bin/bash -c "./startworld.sh"
-        logit "INFO" "Sapiens world '$WORLD_NAME' started in the background. View the console with ./sapiens.sh console." "echo"
+        logit "INFO" "start_world: Sapiens world '$WORLD_NAME' started in the background. View the console with ./sapiens.sh console." "echo"
     fi
 }
 
@@ -77,71 +77,83 @@ stop_world() {
     # Attempt to shut down the server cleanly via screen.
     screen -S "$SCREEN_NAME" -p 0 -X stuff "stop$(printf \\r)" >/dev/null 2>&1
 
+    logit "INFO" "stop_world: Shutting down $WORLD_NAME..."
     if [ "$silent_mode" != "silent" ]; then
-        logit "INFO" "Silently shutting down $WORLD_NAME..."
+        echo "Shutting down $WORLD_NAME..."
     fi
 
     # Loop to check if the screen session is still running
     while screen -list | grep -q "$SCREEN_NAME"; do
         if [ $elapsed_time -ge $max_wait_time ]; then
-            logit "WARN" "Screen session $SCREEN_NAME did not stop within $max_wait_time seconds. Proceeding to forcefully kill linuxServer process."
+            logit "WARN" "stop_world: Screen session $SCREEN_NAME did not stop within $max_wait_time seconds. Proceeding to forcefully kill linuxServer process."
             break
         fi
         sleep $wait_interval
         elapsed_time=$((elapsed_time + wait_interval))
     done
+    logit "DEBUG" "stop_world: screen session exit wait = $elapsed_time seconds."
 
     # If screen session is still running, forcefully kill the linuxServer process
     if screen -list | grep -q "$SCREEN_NAME"; then
         killall "linuxServer"
-        logit "INFO" "Forcefully killed linuxServer process."
+        logit "WARN" "stop_world: Attempting to kill linuxServer process."
 
         elapsed_time=0
         # Loop to check if the linuxServer process is still running
         while pgrep -x "linuxServer" > /dev/null; do
             if [ $elapsed_time -ge $max_wait_time ]; then
-                logit "ERROR" "linuxServer process did not terminate within $max_wait_time seconds after killall command."
+                logit "ERROR" "stop_world: linuxServer process did not terminate within $max_wait_time seconds after killall command."
                 return 1
             fi
             sleep $wait_interval
             elapsed_time=$((elapsed_time + wait_interval))
         done
+        logit "DEBUG" "stop_world: process exit wait = $elapsed_time seconds."
     fi
 
     # Provide feedback about screen termination
+    logit "INFO" "stop_world: World '$WORLD_NAME' has been stopped cleanly."
     if [ "$silent_mode" != "silent" ]; then
-        logit "INFO" "World '$WORLD_NAME' has been stopped."
+        echo "World '$WORLD_NAME' has been stopped cleanly. It will restart on schedule if autorestart is still set."
+        echo "Use './sapiens.sh hardstop' to stop the server and cancel the autorestart schedule."
     fi
 
     return 0
 }
 
 #Stop the server, and cancel the restart timer
-hardstop_world(){
-    if pgrep -x "linuxServer" > /dev/null; then
-        killall linuxServer
+hardstop_world() {
+    if stop_world; then
+        logit "INFO" "hardstop_world: '$WORLD_NAME' has been hard stopped."
+        echo "'$WORLD_NAME' has been hard stopped."
+    else
+        logit "ERROR" "hardstop_world: Failed to stop '$WORLD_NAME'."
+        echo "Failed to stop '$WORLD_NAME'."
     fi
-    logit "INFO" "'$WORLD_NAME' has been hard stopped." "echo"
     auto_restart "0"
 }
 
 # Function to backup the world folder to the specified backup directory.
 backup_world() {
     echo -e "${CYAN}Stopping server if necessary...${NC}"
+    logit "DEBUG" "backup_world: Calling stop_world silently"
     stop_world "silent"
 
     echo -e "Backing up the world ${BRIGHT_GREEN}'$WORLD_NAME'${NC}..."
+    logit "INFO" "Backing up the world '$WORLD_NAME'"
     local TIMESTAMP=$(date +%Y%m%d%H%M%S)
     local BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
     local PARENT_DIR="${WORLD_DIR%/*}"
     
-    cd "$PARENT_DIR" || { echo -e "${RED}Failed to change directory to $PARENT_DIR${NC}"; exit 1; }
+    cd "$PARENT_DIR" || { logit "ERROR" "Failed to change directory to $PARENT_DIR"; echo "Failed to change directory to $PARENT_DIR"; exit 1; }
     
     # Perform the backup and check for errors
     if tar -czf "$WORLD_BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"; then
         echo -e "${GREEN}Backup complete!${NC}"
+        logit "INFO" "backup_world: Backup successfully completed."
     else
         echo -e "${RED}Backup process failed!${NC}" >&2
+        logit "ERROR" "backup_world: Backup failed."
         exit 1
     fi
 }
@@ -160,11 +172,11 @@ open_console() {
         echo -e "${GREEN}Press any key to open the console...${NC}"
         # Wait for any key press
         read -n 1 -s
+        logit "DEBUG" "open_console: Opening screen session $SCREEN_NAME"
         screen -r $SCREEN_NAME
     else
         # Let the user know.
-        logit "WARN" "The console for $WORLD_NAME was not found [screen=$SCREEN_NAME]. Please start the server first."
-        echo "The console for $WORLD_NAME was not found [screen=$SCREEN_NAME]. Please start the server first."
+        logit "WARN" "The console for $WORLD_NAME was not found [screen=$SCREEN_NAME]. Please start the server first." "echo"
     fi
 }
 
@@ -173,14 +185,15 @@ auto_restart() {
     if [[ "$1" == "0" ]]; then
         # Remove the existing cron job if the interval is set to 0
         (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart") | crontab -
-        echo "Auto-restart has been disabled."
+        logit "INFO" "Auto-restart has been disabled." "echo"
     elif [[ "$1" =~ ^[1-9]$|^1[0-9]$|^2[0-4]$ ]]; then
         INTERVAL="$1"
         CRON_JOB="0 */$INTERVAL * * * $SCRIPT_DIR/sapiens.sh restart"
         (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart"; echo "$CRON_JOB") | crontab -
         echo "$WORLD_NAME will restart every $INTERVAL hour(s)."
+        logit "INFO" "auto_restart: $WORLD_NAME set to restart every $INTERVAL hour(s)."
     else
-        echo "Error: Interval must be a number of hours between 1 and 24 or 0 to disable."
+        logit "ERROR" "Interval must be a number of hours between 1 and 24 or 0 to disable." "echo"
         exit 1
     fi
 }
@@ -188,5 +201,6 @@ auto_restart() {
 # Send a chat message to the online players in the world.
 broadcast_message(){
     local message=$1
+    logit "INFO" "broadcast_message: $message"
     screen -S "$SCREEN_NAME" -p 0 -X stuff "server:broadcast('$message')$(printf \\r)" >/dev/null 2>&1
 }
