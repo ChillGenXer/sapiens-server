@@ -460,7 +460,7 @@ install_server(){
     fi
 
     # Set permissions to make scripts executable
-    logit "INFO" "install_server: call set_permissions
+    logit "INFO" "install_server: call set_permissions"
     set_permissions
 
     while true; do
