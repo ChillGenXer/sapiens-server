@@ -1,14 +1,11 @@
-Thanks for sharing your previous README.md. I'll incorporate the details from your scripts into a revised version of your README that reflects the current state of your project.
-
----
-
 # Sapiens Linux Server Helper Scripts
+- **Last tested Sapiens Dedicated Server Version: 0.5.0.47**
 
 This repository offers a comprehensive toolkit for the installation and management of the Sapiens Dedicated Server on Linux, specifically optimized for Ubuntu (23.10 or greater). These scripts simplify the process of running the server, performing updates, and managing server life cycles.
 
-## Latest Version Compatibility
+## Compatibility Note
 
-- **Last tested Sapiens Dedicated Server Version: 0.5.0.47**
+These scripts were developed and thoroughly tested on Ubuntu 23.10 and are designed to run in a Bash environment with `apt` as the package manager. While efforts have been made to ensure compatibility across different Linux distributions, the functionality may vary outside the tested environment. If you encounter issues on other distributions, especially those not using `apt`, please report them. This will help us assess the feasibility of extending compatibility or provide specific workarounds.
 
 ## Prerequisites
 
@@ -24,6 +21,10 @@ sudo usermod -aG sudo sapserver
 
 ## Installation
 
+It is best to start fresh and delete any previous version installed. As long as you use the same Linux username, your old world or worlds will be detected by these scripts.
+
+**Important**: Before deleting any old `sapiens-server` folder, ensure to back up any important data from `world_backups` and `log_backups`.
+
 Clone the repository into a directory called `sapiens-server` in the home directory of the user that will run the server:
 
 ```bash
@@ -31,23 +32,42 @@ git clone https://github.com/ChillGenXer/sapiens-server.git
 cd sapiens-server
 
 # Make the install script executable
-chmod +x install.sh
+chmod +x sapiens.sh
 
 # Run the install script
-./install.sh
+./sapiens.sh config
 ```
-
-**Important**: Before deleting any old `sapiens-server` folder, ensure to back up any important data from `world_backups` and `log_backups`.
 
 ## Configuration
 
-After installation, configure your world settings in the `config.lua` file located at:
+Edit the `config.lua` file to customize your server settings. This file can be edited using the `./sapiens.sh worldconfig` command, which opens the configuration in the default editor.
 
-```
-$HOME/.local/share/majicjungle/players/SERVER-ID/worlds/YOUR-WORLD-ID/config.lua
-```
+### Primary Configuration Options:
 
-This file allows you to set public advertising and customize the server display name (`advertiseName`).
+- **adminList**: A list of admin Steam IDs.
+- **advertiseName**: The name displayed on the public server list if the `--advertise` option is used.
+- **allowList**: A whitelist of player Steam IDs allowed to connect.
+- **banList**: A list of banned player Steam IDs.
+- **dayLength**: The length of a day in game ticks.
+- **disableTribeSpawns**: Set to `true` to prevent new tribe spawns.
+- **globalTimeZone**: If `true`, uses a single time zone for all players.
+- **maxPlayers**: The maximum number of players allowed to connect.
+- **modList**: List of mods enabled on the server.
+- **welcomeMessage**: Message displayed to players upon connection.
+- **worldName**: The name of the world.
+
+### Advanced Configuration Options (Overrides):
+
+- **aiTribeMaxPopulation**: Maximum population for AI tribes.
+- **allowedPlansPerFollower**: Number of plans a follower can execute concurrently.
+- **compostBinMaxItemCount**: Maximum number of items a compost bin can hold.
+- **fireWarmthRadius**: The radius around a fire that provides warmth.
+- **hibernateTribeAfterClientDisconnectDelay**: Duration in game ticks a tribe remains loaded after player disconnects.
+- **maxTerrainSteepness**: Maximum terrain steepness allowed between hex centers.
+- **populationLimitGlobalSoftCap**: Global soft cap on population, affecting birth rates.
+- **rainAffectedCallbackLowChancePerSecond**: Chance per second of rain affecting certain objects.
+
+These settings allow for detailed control over gameplay elements and server performance, tailoring the experience to both server administrator preferences and player needs.
 
 ## Commands
 
@@ -67,6 +87,8 @@ This file allows you to set public advertising and customize the server display 
 For a minimal setup with just the basics:
 
 ```bash
+
+
 chmod +x minstall.sh startworld.sh update.sh
 ./minstall.sh
 ```
