@@ -90,7 +90,3 @@ Contributions, issues, and feature requests are welcome! For major changes, plea
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
----
-
-This revised README.md provides a clear and comprehensive guide to setting up and managing a Sapiens server, reflecting the current capabilities of your scripts. Adjust as necessary to fit further updates or changes in your project's scope.
