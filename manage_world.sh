@@ -10,7 +10,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     exit 1
 fi
 
-server_status() {
+world_status() {
     # Checks to see if there is an active screen session, implying the server is up
     #TODO Should probably check for the linuxServer process too to make this more robust
 
@@ -20,17 +20,17 @@ server_status() {
 
     # Log the status before exiting the function
     if [ $status -eq 0 ]; then
-        logit "INFO" "server_status is reporting a screen session $SCREEN_NAME found, so server is probably running."
+        logit "INFO" "world_status is reporting a screen session $SCREEN_NAME found, so server is probably running."
     else
-        logit "WARN" "server_status was unable to find a screen session named $SCREEN_NAME, server is probably not running."
+        logit "WARN" "world_status was unable to find a screen session named $SCREEN_NAME, server is probably not running."
     fi
 
     return $status  # Explicitly return the captured exit code
 }
 
 # Starts the dedicated server in a screen session
-start_server() {
-    server_status
+start_world() {
+    world_status
     if [ $? -eq 0 ]; then
         read -p "$(echo -e "${CYAN}It appears there is already a Sapiens server running. Do you want to open the server console instead? (${GREEN}y${YELLOW}/${RED}n${YELLOW}): ${NC}")" choice
         case $choice in
@@ -39,11 +39,11 @@ start_server() {
                 open_console
                 ;;
             n|N)
-                logit "INFO" "start_server: Exiting without starting a new server." "echo"
+                logit "INFO" "start_world: Exiting without starting a new server." "echo"
                 exit 0
                 ;;
             *)
-                logit "WARN" "start_server: Taking '$choice' to mean quit without starting a new session." "echo"
+                logit "WARN" "start_world: Taking '$choice' to mean quit without starting a new session." "echo"
                 exit 1
                 ;;
         esac
@@ -54,34 +54,56 @@ start_server() {
 }
 
 # Stop the running server and ensure the screen session is terminated
-stop_server() {
-    # Valid arguments
+stop_world() {
     local silent_mode=$1    # Accepts an argument "silent" to set silent mode
+    local max_wait_time=$SHUTDOWN_WAIT
+    local wait_interval=1
+    local elapsed_time=0
 
     # Attempt to shut down the server cleanly via screen.
-    screen -S $SCREEN_NAME -X stuff 'stop^M' >/dev/null 2>&1
-    
-    # Wait for it to finish
+    screen -S "$SCREEN_NAME" -p 0 -X stuff "stop$(printf \\r)" >/dev/null 2>&1
+
     if [ "$silent_mode" != "silent" ]; then
         logit "INFO" "Silently shutting down $WORLD_NAME..."
-        sleep $SHUTDOWN_WAIT
-    else
-        sleep $SHUTDOWN_WAIT
     fi
 
-    # Check and terminate the screen session if it still exists
+    # Loop to check if the screen session is still running
+    while screen -list | grep -q "$SCREEN_NAME"; do
+        if [ $elapsed_time -ge $max_wait_time ]; then
+            logit "WARN" "Screen session $SCREEN_NAME did not stop within $max_wait_time seconds. Proceeding to forcefully kill linuxServer process."
+            break
+        fi
+        sleep $wait_interval
+        elapsed_time=$((elapsed_time + wait_interval))
+    done
+
+    # If screen session is still running, forcefully kill the linuxServer process
     if screen -list | grep -q "$SCREEN_NAME"; then
-        screen -S "$SCREEN_NAME" -X quit
+        killall "linuxServer"
+        logit "INFO" "Forcefully killed linuxServer process."
+
+        elapsed_time=0
+        # Loop to check if the linuxServer process is still running
+        while pgrep -x "linuxServer" > /dev/null; do
+            if [ $elapsed_time -ge $max_wait_time ]; then
+                logit "ERROR" "linuxServer process did not terminate within $max_wait_time seconds after killall command."
+                return 1
+            fi
+            sleep $wait_interval
+            elapsed_time=$((elapsed_time + wait_interval))
+        done
     fi
 
     # Provide feedback about screen termination
     if [ "$silent_mode" != "silent" ]; then
         logit "INFO" "World '$WORLD_NAME' has been stopped."
     fi
+
+    return 0
 }
 
 #Stop the server, and cancel the restart timer
-hardstop_server(){
+hardstop_world(){
     if pgrep -x "linuxServer" > /dev/null; then
         killall linuxServer
     fi
@@ -90,9 +112,9 @@ hardstop_server(){
 }
 
 # Function to backup the world folder to the specified backup directory.
-backup_server() {
+backup_world() {
     echo -e "${CYAN}Stopping server if necessary...${NC}"
-    stop_server "silent"
+    stop_world "silent"
 
     echo -e "Backing up the world ${BRIGHT_GREEN}'$WORLD_NAME'${NC}..."
     local TIMESTAMP=$(date +%Y%m%d%H%M%S)
@@ -112,8 +134,8 @@ backup_server() {
 
 # Open the screen session to see the server console
 open_console() {
-    # Call server_status to see if the screen session exists
-    if server_status; then
+    # Call world_status to see if the screen session exists
+    if world_status; then
         # If a screen session is found, resume it
         echo ""
         echo -e "${CYAN}You are about to enter the ${GREEN}Sapiens Server Console.${NC}"
@@ -147,4 +169,10 @@ auto_restart() {
         echo "Error: Interval must be a number of hours between 1 and 24 or 0 to disable."
         exit 1
     fi
+}
+
+# Send a chat message to the online players in the world.
+broadcast_message(){
+    local message=$1
+    screen -S "$SCREEN_NAME" -p 0 -X stuff "server:broadcast('$message')$(printf \\r)" >/dev/null 2>&1
 }

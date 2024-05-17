@@ -114,23 +114,6 @@ installed_worlds() {
     return 0
 }
 
-# This function checks to make sure that the user is not using "root" to install the server.
-check_for_root() {
-    if [ "$EUID" -eq 0 ]; then
-        logit "ERROR" "root user detected.  Exiting."
-        echo "The Sapiens dedicated server should not be run as the root user. Please create a new user to run the server that has sudo access."
-        echo "The user 'sapserver' is used in the instructions, you can create it like this logged in as root (as you are now):"
-        echo ""
-        echo "  adduser sapserver"
-        echo "  usermod -aG sudo sapserver"
-        echo ""
-        echo "Once this user has been created log in as that user, get this project and run this script again."
-        echo ""
-        echo "git clone https://github.com/ChillGenXer/sapiens-server.git"
-        exit 1
-    fi
-}
-
 # Adds the script directory to the path configuration.
 add_to_path() {
     local path_to_add="$1"
@@ -344,8 +327,7 @@ select_world() {
 # Create a new world
 create_world() {
     local world_to_create=$1
-
-    
+   
     # Create the world and grab the process pid
     logit "INFO" "Creating new world: $SAPIENS_DIR/linuxServer --server-id '$SERVER_ID' --new '$new_world_name'"
     $SAPIENS_DIR/linuxServer --server-id "$SERVER_ID" --new "$new_world_name" >/dev/null 2>&1 &
@@ -441,7 +423,7 @@ install_server(){
 
     # Try to shut down the screen session to handle if the config was deleted while a server was running.
     logit "INFO" "Ensuring there are no active server sessions..." "echo"
-    stop_server "silent"
+    stop_world "silent"
     echo ""
 
     # Check to see if the software dependencies are in place
@@ -551,4 +533,21 @@ install_server(){
     clear
     echo "$WORLD_NAME successfully activated."
     active_world_summary
+}
+
+# This function checks to make sure that the user is not using "root" to install the server.
+check_for_root() {
+    if [ "$EUID" -eq 0 ]; then
+        logit "ERROR" "root user detected.  Exiting."
+        echo "The Sapiens dedicated server should not be run as the root user. Please create a new user to run the server that has sudo access."
+        echo "The user 'sapserver' is used in the instructions, you can create it like this logged in as root (as you are now):"
+        echo ""
+        echo "  adduser sapserver"
+        echo "  usermod -aG sudo sapserver"
+        echo ""
+        echo "Once this user has been created log in as that user, get this project and run this script again."
+        echo ""
+        echo "git clone https://github.com/ChillGenXer/sapiens-server.git"
+        exit 1
+    fi
 }

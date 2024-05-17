@@ -3,6 +3,12 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: A set of commands for managing a running Sapiens dedicated server on Linux, including installation.
 
+# Check if the script is running with Bash
+if [ -z "$BASH_VERSION" ]; then
+  echo "This script must be run with Bash.  Please start with ./sapiens.sh arg."
+  exit 1
+fi
+
 # Source the required library scripts
 cd $HOME/sapiens-server
 
@@ -36,24 +42,25 @@ case $1 in
         ;;
     start)
         upgrade_server          # Check to see if we have the latest version.
-        start_server            # manage_world.sh
+        start_world            # manage_world.sh
         ;;
     stop)
-        stop_server             # manage_world.sh
+        stop_world             # manage_world.sh
         ;;
     hardstop)
-        hardstop_server         # manage_world.sh
+        hardstop_world         # manage_world.sh
         ;;
     restart)
         logit "INFO" "Restarting server"
-        stop_server             # manage_world.sh
-        start_server            # manage_world.sh
+        broadcast_message("Server is being restarted...")
+        stop_world             # manage_world.sh
+        start_world            # manage_world.sh
         ;;
     autorestart)
         auto_restart "$2"
         ;;
     backup)
-        backup_server
+        backup_world
         ;;
     upgrade)
         upgrade_server
