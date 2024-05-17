@@ -22,7 +22,7 @@ done
 
 # Some of the command line arguments require the config file to be set.  If it is not found, exit with an error.
 case $1 in
-    start|stop|hardstop|restart|autorestart|backup|upgrade|console|broadcast|info)
+    start|stop|hardstop|restart|autorestart|backup|upgrade|console|broadcast|info|worldconfig)
         if [ -f "$CONFIG_FILE" ]; then
             source "$CONFIG_FILE"
         else
@@ -40,6 +40,9 @@ case $1 in
     config)
         install_server
         ;;
+    worldconfig)
+        nano $WORLD_DIR/config.lua
+        ;;
     start)
         upgrade_server          # Check to see if we have the latest version.
         start_world            # manage_world.sh
@@ -54,7 +57,7 @@ case $1 in
         logit "INFO" "Restarting server"
         broadcast_message "Server is being restarted..."
         stop_world             # manage_world.sh
-        start_world            # manage_world.sh
+        start_world            # manage_world.sh.  This will also check that we have the latest Sapiens executable.
         ;;
     autorestart)
         auto_restart "$2"
@@ -91,9 +94,10 @@ case $1 in
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}hardstop${NC} - Stops the world and cancels any autorestart setting."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}restart${NC} - Manually restart the server. Good to use if things are getting laggy."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}autorestart [0-24]${NC} - Automatically restart the world at the specified hour interval, 0 cancels."
-        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}upgrade${NC} - Upgrade to the latest version of the Sapiens server executable from Steam."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}upgrade${NC} - Forced upgrade/validation of the Sapiens server executable from Steam."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}backup${NC} - Stops the world and backs it up to the backup folder."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}config${NC} - Select and configure the active world (does initial install if required)."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}worldconfig${NC} - Opens the game lua configuration file for the active world for editing."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}info${NC} - Show information about the active world."
         echo ""
         echo -e "${BRIGHT_RED}If you have any issues please raise them at ${GREEN}$GITHUB_URL/issues${NC}"
