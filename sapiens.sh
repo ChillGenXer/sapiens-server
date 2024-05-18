@@ -1,162 +1,107 @@
 #!/usr/bin/env bash
 
 # Author: ChillGenXer (chillgenxer@gmail.com)
-# Description: A set of commands for managing a running Sapiens dedicated server on Linux.
+# Description: A set of commands for managing a running Sapiens dedicated server on Linux, including installation.
 
-cd $HOME/sapiens-server
-
-# Import the configuration
-if [ ! -f "config.sh" ]; then
-  echo "Error: config.sh file not found.  Please ensure you run 'install.sh' first."
+# Ensure the script is running with Bash
+if [ -z "$BASH_VERSION" ]; then
+  echo "This script must be run with Bash.  Please start with ./sapiens.sh 'command'."
   exit 1
-else
-  source config.sh
 fi
 
-# Checks to see if there is an active screen session, implying the server is up
-check_screen() {
-    # Check if a screen session with the specified name exists
-    screen -ls | grep -q "$SCREEN_NAME"
-}
+# Source the required library scripts
+cd $HOME/sapiens-server
 
-# Starts the dedicated server in a screen session
-start_server() {
-    check_screen
-    if [ $? -eq 0 ]; then
-        read -p "It appears there is already a Sapiens server running. Do you want to open the server console instead? (y/n): " choice
-        case $choice in
-            y|Y)
-                open_console
-                ;;
-            n|N)
-                echo "Exiting without starting a new server."
-                exit 0
-                ;;
-            *)
-                echo "Invalid choice. Exiting without starting a new session."
-                exit 1
-                ;;
-        esac
-    else
-        screen -dmS $SCREEN_NAME /bin/bash -c "./start.sh"
-        echo "Sapiens world '$WORLD_NAME' started in the background. View the console with ./sapiens.sh console."
-    fi
-}
-
-#Function to kill all running Sapiens Dedicated Server processes and backup the log files.
-stop_server() {
-    # Attempt to do it cleanly.
-    screen -S $SCREEN_NAME -X stuff 'stop^M'
-
-    sleep 5
-
-    # Check if it's really down, and if not kill the process.
-    if pgrep -x "linuxServer" > /dev/null; then
-        killall linuxServer
-    fi
-
-    echo "'$WORLD_NAME' has been stopped.  If you intend to keep it stopped, please run ./sapiens.sh hardstop to keep it from restarting."
-}
-
-#Stop the server, and cancel the restart timer
-hardstop_server(){
-    if pgrep -x "linuxServer" > /dev/null; then
-        killall linuxServer
-    fi
-    echo "'$WORLD_NAME' has been hard stopped."
-    auto_restart "0"
-}
-
-# Function to backup the world folder to the specified backup directory.
-backup_server() {
- 
-    echo "Stopping server if necessary..."
-    stop_server
-
-    echo "Backing up the world '$WORLD_NAME'..."
-    TIMESTAMP=$(date +%Y%m%d%H%M%S)
-    BACKUP_FILE="sapiens_backup_$TIMESTAMP.tar.gz"
-    cd "$SAPIENS_DIR/players/$SERVER_ID/worlds"
-    # Archive the specific world directory, including its name in the archive
-    tar -czf "$BACKUP_DIR/$BACKUP_FILE" "$WORLD_ID"
-    
-}
-
-# Use steamcmd to upgrade the Sapiens Dedicated Server
-upgrade_server() {
-    steamcmd +runscript ~/sapiens-server/steamupdate.txt
-}
-
-# Open the screen session to see the server console
-open_console() {
-    # Call check_screen to see if the screen session exists
-    if check_screen; then
-        # If a screen session is found, resume it
-        screen -r $SCREEN_NAME
-    else
-        # Let the user know.
-        echo "The console for $WORLD_NAME was not found [screen=$SCREEN_NAME]. Please start the server first."
-    fi
-}
-
-# Set a cronjob to restart the Sapiens server at specified hourly intervals or disable the restart.
-auto_restart() {
-    if [[ "$1" == "0" ]]; then
-        # Remove the existing cron job if the interval is set to 0
-        (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart") | crontab -
-        echo "Auto-restart has been disabled."
-    elif [[ "$1" =~ ^[1-9]$|^1[0-9]$|^2[0-4]$ ]]; then
-        INTERVAL="$1"
-        CRON_JOB="0 */$INTERVAL * * * $SCRIPT_DIR/sapiens.sh restart"
-        (crontab -l 2>/dev/null | grep -v "$SCRIPT_DIR/sapiens.sh restart"; echo "$CRON_JOB") | crontab -
-        echo "$WORLD_NAME will restart every $INTERVAL hour(s)."
-    else
-        echo "Error: Interval must be a number of hours between 1 and 24 or 0 to disable."
+required_files=("constants.sh" "bootstrap.sh" "manage_world.sh" "manage_server.sh")
+for file in "${required_files[@]}"; do
+    if ! source "$file"; then
+        echo "[ERROR]: Failed to source $file. Ensure the file exists in the script directory and is readable."
         exit 1
     fi
-}
+done
+
+# Some of the command line arguments require the config file to be set.  If it is not found, exit with an error.
+case $1 in
+    start|stop|hardstop|restart|autorestart|backup|upgrade|console|broadcast|info|worldconfig)
+        if [ -f "$CONFIG_FILE" ]; then
+            source "$CONFIG_FILE"
+        else
+            logit "ERROR" "$CONFIG_FILE not found. Please run ./sapiens.sh install to configure an active world." "echo"
+            read -p "$(echo -e "${YELLOW}Do you want to run the installation now? (${GREEN}y${YELLOW}/${RED}n${YELLOW}): ${NC}")" choice
+            case "$choice" in 
+                y|Y ) install_server;;
+                n|N|* ) echo -e "${RED}Installation aborted. Exiting...${NC}"; exit 1;;
+            esac
+        fi
+        ;;
+esac
 
 case $1 in
+    config)
+        install_server
+        ;;
+    worldconfig)
+        nano $WORLD_DIR/config.lua
+        ;;
     start)
-        start_server
+        upgrade_server          # Check to see if we have the latest version.
+        start_world            # manage_world.sh
         ;;
     stop)
-        stop_server
+        stop_world             # manage_world.sh
         ;;
     hardstop)
-        hardstop_server
+        hardstop_world         # manage_world.sh
         ;;
     restart)
-        stop_server
-        sleep 5  # wait for the server to shut down gracefully
-        start_server
+        logit "INFO" "Restarting server"
+        broadcast_message "Server is being restarted..."
+        stop_world             # manage_world.sh
+        start_world            # manage_world.sh.  This will also check that we have the latest Sapiens executable.
         ;;
     autorestart)
         auto_restart "$2"
         ;;
     backup)
-        backup_server
+        backup_world
         ;;
     upgrade)
         upgrade_server
         ;;
     console)
         open_console
-        ;;    
+        ;;
+    broadcast)
+        broadcast_message "$2"
+        ;;
+    info)
+        active_world_summary
+        ;;
     *)
-        echo "Sapiens Server Manager"
-        echo "Version: $VERSION"
-        echo "chillgenxer@chillgenxer.com"
+        clear
+        echo -e "${CYAN}$SCRIPT_NAME${NC}"
+        echo -e "${BRIGHT_GREEN}Script Version : $SCRIPT_VERSION${NC}"
+        echo -e "${BRIGHT_GREEN}Author         : chillgenxer@chillgenxer.com${NC}"
+        echo -e "${BRIGHT_GREEN}GitHub         : $GITHUB_URL${NC}"
+        echo ""
+        echo -e "Run '${CYAN}./sapiens.sh${NC} ${GREEN}config${NC}' to install the Sapiens server, and to select an active world."
         echo ""
         echo "Usage examples:"
-        echo "./sapiens.sh start - starts your world in the background."
-        echo "./sapiens.sh console - Bring the running world's console. To exit without stopping the server hold CTRL and type A D."        
-        echo "./sapiens.sh stop - stops your world."
-        echo "./sapiens.sh restart - Manually restart the server. Good to use if things are getting laggy."
-        echo "./sapiens.sh autorestart [hours] - Automatically restart the world at the specified hour interval."
-        echo "./sapiens.sh upgrade - This will update you to the latest version of the Sapiens server."
-        echo "./sapiens.sh backup - Stops the world and backs it up to the backup folder."
-
+        echo "---------------"
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}start${NC} - Starts the active world in the background."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}console${NC} - Open world's console. To exit without stopping the server hold CTRL and type A D."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}stop${NC} - Stops the world."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}hardstop${NC} - Stops the world and cancels any autorestart setting."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}restart${NC} - Manually restart the server. Good to use if things are getting laggy."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}autorestart [0-24]${NC} - Automatically restart the world at the specified hour interval, 0 cancels."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}upgrade${NC} - Forced upgrade/validation of the Sapiens server executable from Steam."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}backup${NC} - Stops the world and backs it up to the backup folder."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}config${NC} - Select and configure the active world (does initial install if required)."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}worldconfig${NC} - Opens the game lua configuration file for the active world for editing."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}info${NC} - Show information about the active world."
+        echo ""
+        echo -e "${BRIGHT_RED}If you have any issues please raise them at ${GREEN}$GITHUB_URL/issues${NC}"
+        echo ""
         exit 1
         ;;
 esac

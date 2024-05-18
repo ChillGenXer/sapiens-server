@@ -1,0 +1,6 @@
+//Update sequence for Sapiens Dedicated Server
+//
+force_install_dir sapiens
+login anonymous
+app_update 2886350 validate
+quit

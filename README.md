@@ -1,65 +1,126 @@
 # Sapiens Linux Server Helper Scripts
-Installation and management scripts for the Sapiens Dedicated Server on Ubuntu (Linux).<br>
-**Last tested Sapiens Dedicated Server Version: 0.5.0.45**
+- **Last tested Sapiens Dedicated Server Version: 0.5.0.54**
 
-This package assumes you have an **Ubuntu 23.10 or greater** installation ready and a user that the server will run under, and is setup with ``sudo`` access.  Please ensure you create a new user that will be used for the server to run on, **the install script will not run if installed as the root user!**  To set up a new user:
+This repository offers a comprehensive command line interface for the installation and management of the Sapiens Dedicated Server on a Linux Ubuntu machine. These scripts simplify the process of running the server, performing updates, and managing the server's life cycle.
 
-**``sudo adduser sapserver``**
+## Compatibility Note
 
-or if you are creating the user as the root user:<br>
-**``adduser sapserver``**
+These scripts were developed and thoroughly tested on Ubuntu 23.10 and are designed to run in a Bash environment with `apt` as the package manager. Earlier versions of Ubuntu should work (22.04 LTS). While efforts have been made to ensure compatibility across different Linux distributions, the functionality may vary outside the tested environment. If you encounter issues on other distributions please report them. This will help me assess the feasibility of extending compatibility or provide specific workarounds.
 
-Set a password for the new user.  Now, add the user to the sudo group (without the first ``sudo`` if you are installing as the ``root`` user:<br>
-**``sudo usermod -aG sudo sapserver``**
+## Prerequisites
 
-or if you are doing this as root:<br>
-**``sudo usermod -aG sudo sapserver``**
+It is advisable to run the server within a dedicated user account. This setup takes advantage of how SteamCMD installs and manages the game's executable and related files within the `.local` directory of a user's home directory. While setting up a new user account is not mandatory, doing so can help maintain a clean and organized environment, especially useful for isolating the server from other system processes or personal use files.  While some constants can be changed in constants.sh, the script hasn't been thoroughly tested by making extensive changes to these constants.  So basically it is best to set up a dedicated user and follow the instructions here.
 
-In this example "sapserver" is the user ID you will log into and run the server with.
+### Configuring a Dedicated User (If Required)
+
+If you choose to set up a new user account for the server, follow these steps:
+
+1. **Create the User**: This step creates a new user which will be used exclusively to operate the server.
+
+    ```bash
+    sudo adduser sapserver
+    ```
+
+2. **Grant Sudo Access**: Provide `sudo` access to allow the user to install necessary software and manage server settings. This access is controlled and does not compromise the security principles of running server processes.
+
+    ```bash
+    sudo usermod -aG sudo sapserver
+    ```
 
 ## Installation
 
-If you have previous versions it is safe to remove the old folder and scripts before cloning the repository.  The one point to make here is that before you delete an old sapiens-server folder **make sure you move any backups you want to keep from world_backups and log_backup subfolders!**  The script will generate everything it needs when you run install.  If you have multiple worlds created you can run ./install.sh again to reconfigure the scripts to use a different world.
+**It is best to start fresh and delete any previous version installed**. As long as you use the same user account your old world or worlds will be detected by the script.
 
-First thing is to clone these helper files to your server.  This set of scripts currently expects to run in the user home folder in a directory called "sapiens-server".  Log into Ubuntu with the username you will be using for the server.  From the **home folder** type:
+**Important**: Before deleting any old `sapiens-server` folder, ensure to back up any important data from `world_backups` and `log_backups`.
 
-**``git clone https://github.com/ChillGenXer/sapiens-server.git``**
+Run the clone command in the home directory and it will create a folder `sapiens-server` where the scripts will reside:
 
-Please note these scripts expect to run in a folder called "sapiens-server" in the home directory.  It will not work correctly if installed in another location.  As a best practice this user account should only be used for the sapiens server.  It will run in the background and you will be able to log out and not have to keep the console open.
+```bash
+git clone https://github.com/ChillGenXer/sapiens-server.git
+cd sapiens-server
 
-Now navigate to the new directory:<br>
+# Make the install script executable
+chmod +x sapiens.sh
 
-**``cd sapiens-server``**
+# Run the install script
+./sapiens.sh config
+```
 
-Now we need to make the install script executable:<br>
+Walk through the installation guide in the script and you should end up with a configured world, ready to run.
 
-**``chmod +x install.sh``**
+## Configuration
 
-Now run it:
+Once you have a configured world before you start it for the first time you can edit the `config.lua` file in the world directory to customize your server settings. This file is generated by the game for the world and can be edited using the `./sapiens.sh worldconfig` command, which opens the configuration in the nano text editor so you can make adjustments as necessary.  These settings allow for detailed control over gameplay elements and server performance, tailoring the experience to both server administrator preferences and player needs.Some of the options available are listed below:
 
-**``./install.sh``**
+### Primary Configuration Options:
 
-Once the script has completed, you can edit your world config.  We will find that here:
+- **adminList**: A list of admin Steam IDs.
+- **modList**: List of moderator Steam IDs. 
+- **advertiseName**: The name displayed on the public server list if the `--advertise` option is used.  If it is not set, the World Name will be used in the multiplayer screen.
+- **allowList**: A whitelist of player Steam IDs allowed to connect.  If something is set in here basically to log in you need to be in this list.
+- **banList**: A list of banned player Steam IDs.
+- **dayLength**: The length of a day in seconds.
+- **disableTribeSpawns**: Set to `true` to prevent new tribe spawns.
+- **globalTimeZone**: If `true`, uses a single time zone for all players.
+- **maxPlayers**: The maximum number of players allowed to connect.
+- **welcomeMessage**: Message displayed to players upon connection.
+- **worldName**: The name of the world.  **NOTE** if you change the name of your world here, you also need to change it in the info.json file in the same directory, and run `./sapiens.sh config` again to pick up the new name.
 
-nano ``$HOME/.local/share/majicjungle/players/SERVER-ID/worlds/YOUR-WORLD-ID/config.lua``
+### Game Overrides:
 
-There are various options that can be changed in here, and the config file is pretty well documented. Of note is you can set public advertising of your server by running the install.sh script, however in the config file above you can change the ``advertiseName`` to change the text that actually shows up.  If you only use the install.sh script it will use the **World Name** by default.
+- **aiTribeMaxPopulation**: Maximum population for AI tribes.
+- **allowedPlansPerFollower**: Number of plans a follower can execute concurrently.
+- **compostBinMaxItemCount**: Maximum number of items a compost bin can hold.
+- **fireWarmthRadius**: The radius around a fire that provides warmth.
+- **hibernateTribeAfterClientDisconnectDelay**: Duration a tribe remains loaded after player disconnects.
+- **maxTerrainSteepness**: Maximum terrain steepness allowed between hex centers.
+- **populationLimitGlobalSoftCap**: Global soft cap on population, affecting birth rates.
+- **rainAffectedCallbackLowChancePerSecond**: Chance per second of rain affecting certain objects.
 
-Ok once you have changed the config.lua to your needs, save it and close nano. Let's go back to the helper scripts folder:
+## World Management Commands
 
-**``cd ~/sapiens-server``**
+Once you have an active world configured, below is a list of available commands for managing the world through the command line interface provided by the script. 
 
-Your server is now ready to run!  From now on, when you log in you can change to the sapiens-server directory and you can use the sapiens.sh script.  If you ever want to change any of the options, just run ./install.sh again.
+| `./sapiens.sh` *arg*              | Description                                                                                            |
+|-----------------------------------|--------------------------------------------------------------------------------------------------------|
+| `start`                           | Starts the active world in the background.                                                             |
+| `console`                         | Opens the world's console. To exit without stopping the server, hold CTRL and type A D.                |
+| `stop`                            | Stops the active world.  This does not cancel any autorestart schedule.                                |
+| `hardstop`                        | Stops your world and cancels any autorestart schedule that is set.                                     |
+| `restart`                         | Manually restarts the server. Useful if things are getting laggy.                                      |
+| `autorestart [0-24]`              | Automatically restarts the world at the specified hour interval. Setting to 0 cancels the autorestart. |
+| `upgrade`                         | Forces an upgrade of the Sapiens server executable from Steam ('start' does this automatically).       |
+| `backup`                          | Stops the world and backs it up to the backup folder.                                                  |
+| `config`                          | Selects and configures the active world. Runs initial installation if required.                        |
+| `worldconfig`                     | Opens the active world's Lua configuration file (config.lua) for editing.                              |
+| `info`                            | Shows information about the active world.                                                              |
 
-## Commands
 
-./sapiens.sh **start** - starts your world in the background.
-./sapiens.sh **console** - Bring the running world's console. To exit without stopping the server hold CTRL and type A D.       
-./sapiens.sh **stop** - stops your world.
-./sapiens.sh **hardstop** - Stops your world and cancels autorestart.
-./sapiens.sh **restart** - Basically a stop, wait, and then a start. Good to use if things are getting laggy.
-./sapiens.sh **upgrade** - This will update you to the latest version of the Sapiens server."
-./sapiens.sh **backup** - Stops the world and backs it up to the backup folder."
-./sapiens.sh **autorestart [minutes]** - Automatically restart the world at the specified interval.  Set to 0 to disable.
+## Minimal Installation Scripts
 
-./install.sh - Allows for reconfiguration or switching of the active world you are running.
+If you are just looking to get a working linuxServer with dependencies installed you can use the minimal script.  This just installs the executable to a running state, but no other scripts for managing it are provided, except a startworld.sh script to restart the server if it crashes.
+
+```bash
+
+chmod +x minstall.sh startworld.sh update.sh
+./minstall.sh
+```
+
+### Configuration for Minimal Setup
+
+You can create a new world after installation:
+
+```bash
+./linuxServer --new "Test World" --server-id "chillgenxer"
+```
+
+Update the `STEAM_UPDATE_SCRIPT` path in `minstall.sh` & `update.sh` to the correct location if moved.
+Set up server and network configurations in `startworld.sh`, adjusting the parameters like `$WORLD_NAME`, `$SERVER_ID`, and network ports.
+
+## Contribution and Support
+
+Contributions, issues, and feature requests are welcome! For major changes, please open an issue first to discuss what you would like to change. Visit [GitHub issues](https://github.com/ChillGenXer/sapiens-server/issues) for requests.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.

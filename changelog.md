@@ -1,3 +1,18 @@
+#Change Log#
+
+##1.0.0##
+- Added a "minimal" setup to just install dependencies.
+- Updated enet log location so it is archived properly.
+- Added a logging function and much more extensive application logging, including a debug flag in constants.
+- Streamlined installation flow.  Removed "install.sh" and instead invoke with "./sapiens.sh config"
+- Made server stop detection more robust.
+- Checks Sapiens version whenever the world starts up and upgrades if necessary.
+- Added a "./sapiens.sh info" option to show details about the currently active world.
+- Added option to open game's lua config file for the world for editing.
+- Refactored code for maintainability.
+- Changed autorestart units to hours.
+- Added message of how to exit console without exiting.
+
 ##0.4.1## - 2024-05-05
 - Made bug reporting options configurable.
 - Fixed placeholder descriptions for log_backups and world_backups.
