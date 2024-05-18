@@ -1,4 +1,4 @@
-# You need to update this to the path of where ever you put steamupdate.txt
-STEAM_UPDATE_SCRIPT="$HOME/sapiens-server/minimal/steamupdate.txt"
+#!/usr/bin/env bash
+# A basic script for updating Sapiens linuxServer
 
-steamcmd +runscript $STEAM_UPDATE_SCRIPT
+steamcmd +force_install_dir sapiens +login anonymous +app_update 2886350 validate +quit

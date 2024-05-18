@@ -1,4 +1,7 @@
 #Change Log#
+##1.0.5##
+- Got rid of that annoying steamupdate.txt file
+
 ##1.0.4##
 - Fixed condition when the linuxServer is not installed to query for version number.
 
