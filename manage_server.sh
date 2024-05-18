@@ -227,7 +227,7 @@ upgrade_server() {
         logit "INFO" "New Sapiens build available. Updating Sapiens Dedicated Server" "echo"
 
         # Run steamcmd with the update script
-        steamcmd +runscript ~/sapiens-server/steamupdate.txt
+        steamcmd +runscript $HOME/sapiens-server/steamupdate.txt
 
         # Get the new build id after the update
         local new_buildid=$(get_current_buildid)

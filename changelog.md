@@ -1,4 +1,7 @@
 #Change Log#
+##1.0.3##
+- Correct steamcmd config file regression error.
+
 ##1.0.1-1.0.2##
 - Minor documentation corrections and turned off debugging in constants.sh
 
