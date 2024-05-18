@@ -245,9 +245,21 @@ upgrade_server() {
 
 # Gets the current version of the Sapiens linuxServer executable
 get_sapiens_version() {
-    #Run the --help command on the server executable and cut out the version number
-    local version_line=$($SAPIENS_DIR/linuxServer --help | grep 'Version:')
-    echo "$version_line" | cut -d':' -f2 | xargs
+    # Check if the linuxServer executable exists
+    if [[ ! -f "$SAPIENS_DIR/linuxServer" ]]; then
+        echo "Not installed"
+        return 0  # Exit the function if the file does not exist
+    fi
+
+    # If the executable exists, run the --help command to extract the version number
+    local version_line=$("$SAPIENS_DIR/linuxServer" --help | grep 'Version:')
+    if [[ -n "$version_line" ]]; then
+        echo "$version_line" | cut -d':' -f2 | xargs
+        logit "DEBUG" "$version_line" | cut -d':' -f2 | xargs
+    else
+        echo "Configuration error"  # Fallback message if the version information is not available
+        logit "ERROR" "Configuration error, the version wasn't parsed correctly from the linuxServer --help query"
+    fi
 }
 
 # Sets permissions so the management scripts can run.

@@ -1,4 +1,7 @@
 #Change Log#
+##1.0.4##
+- Fixed condition when the linuxServer is not installed to query for version number.
+
 ##1.0.3##
 - Correct steamcmd config file regression error.
 
