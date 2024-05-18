@@ -85,6 +85,7 @@ Once you have an active world configured, below is a list of available commands 
 |-----------------------------------|--------------------------------------------------------------------------------------------------------|
 | `start`                           | Starts the active world in the background.                                                             |
 | `console`                         | Opens the world's console. To exit without stopping the server, hold CTRL and type A D.                |
+| `broadcast "message"`             | Sends a message to the chat in the active world.                                                       |
 | `stop`                            | Stops the active world.  This does not cancel any autorestart schedule.                                |
 | `hardstop`                        | Stops your world and cancels any autorestart schedule that is set.                                     |
 | `restart`                         | Manually restarts the server. Useful if things are getting laggy.                                      |

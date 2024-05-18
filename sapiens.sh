@@ -89,7 +89,7 @@ case $1 in
         echo "---------------"
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}start${NC} - Starts the active world in the background."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}console${NC} - Open world's console. To exit without stopping the server hold CTRL and type A D."
-        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}broadcast message${NC} - Broadcasts a message to the server."
+        echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}broadcast \"message\"${NC} - Broadcasts a message to the server."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}stop${NC} - Stops the world."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}hardstop${NC} - Stops the world and cancels any autorestart setting."
         echo -e "${CYAN}./sapiens.sh${NC} ${GREEN}restart${NC} - Manually restart the server. Good to use if things are getting laggy."
