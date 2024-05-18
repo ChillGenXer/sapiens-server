@@ -54,9 +54,9 @@ active_world_summary(){
     echo -e "---------------------------------------------------------------------"
     echo -e "To change this configuration, run ${CYAN}./sapiens.sh${NC} ${GREEN}config${NC}"
     echo ""
-    echo -e "If you intend to make your server public, please ensure you have the"
-    echo -e "ports above forwarded from your router to your Local IP Address."
-    echo -e "The public IP will be used to connect outside your local network."
+    echo -e "${CYAN}If you intend to make your server public, please ensure you have the"
+    echo -e "ports above forwarded from your router to your server's Local IP Address."
+    echo -e "The public IP will be used to connect outside your local network (ie. the Internet).${NC}"
     echo ""
 }
 
@@ -133,36 +133,6 @@ installed_worlds() {
     # Return the count of worlds found
     echo $count
     return 0
-}
-
-# Adds the script directory to the path configuration.
-add_to_path() {
-    local path_to_add="$1"
-    local shell_config_file
-
-    # Determine which shell the user is using and select appropriate config file
-    case "$SHELL" in
-        */bash)
-            shell_config_file="$HOME/.bashrc"
-            ;;
-        */zsh)
-            shell_config_file="$HOME/.zshrc"
-            ;;
-        *)
-            echo "Unsupported shell. Please add the directory manually to your shell's config file."
-            return 1
-            ;;
-    esac
-
-    # Check if the directory is already in the PATH
-    if [[ ":$PATH:" != *":$path_to_add:"* ]]; then
-        # Adding the directory to the PATH in the determined shell config file
-        echo "export PATH=\$PATH:$path_to_add" >> "$shell_config_file"
-        echo "$path_to_add added to your PATH in $shell_config_file."
-        source $shell_config_file       # activate the path changes
-    else
-        echo "$path_to_add is already in your PATH."
-    fi
 }
 
 # See if the Sapiens Server executable is installed
@@ -385,22 +355,22 @@ create_world() {
 
 configure_world(){
     echo ""
-    if yesno "Advertise Server to the public in-game?"; then
+    if yesno "$(echo -e "${CYAN}Advertise Server to the public in-game?${NC}")"; then
         ADVERTISE="--advertise "
         echo -e "${GREEN}Server will be advertised.${NC}"
     else
         ADVERTISE=""
-        echo "${RED}Server will not be advertised.${NC}"
+        echo -e "${RED}Server will not be advertised.${NC}"
     fi
 
     echo ""
-    echo "If you don't mind helping the developer to fix bugs in"
-    if yesno "Sapiens, do you want to send your log files on a crash?"; then
+    echo -e "${CYAN}If you don't mind helping the developer to fix bugs in"
+    if yesno "$(echo -e "Sapiens, do you want to send your log files on a crash?${NC}")"; then
         PROVIDE_LOGS="--yes "
-        echo "${GREEN}Log reporting Enabled.${NC}"
+        echo -e "${GREEN}Log reporting Enabled.${NC}"
     else
         PROVIDE_LOGS=""
-        echo "${RED}No reports will be sent to the developer on a crash.${NC}"
+        echo -e "${RED}No reports will be sent to the developer on a crash.${NC}"
     fi
 
     # Helper function to read port from user or use default
@@ -552,8 +522,17 @@ install_server(){
     done
     configure_world
     create_config
+    source "config.sh"
     clear
-    echo "$WORLD_NAME successfully activated."
+    echo -e "${GREEN}$WORLD_NAME${NC} successfully activated."
     active_world_summary
+    echo ""
+    if yesno "$(echo -e "Do you want to edit the config.lua file?${NC}")"; then
+        nano $WORLD_DIR/config.lua
+    fi
+    echo ""
+    if yesno "$(echo -e "Do you want to start the world now?${NC}")"; then
+        start_world
+    fi
 }
 

@@ -3,7 +3,7 @@
 # Author: ChillGenXer (chillgenxer@gmail.com)
 # Description: A set of commands for managing a running Sapiens dedicated server on Linux, including installation.
 
-# Check if the script is running with Bash
+# Ensure the script is running with Bash
 if [ -z "$BASH_VERSION" ]; then
   echo "This script must be run with Bash.  Please start with ./sapiens.sh 'command'."
   exit 1
