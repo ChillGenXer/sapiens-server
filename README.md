@@ -1,23 +1,35 @@
 # Sapiens Linux Server Helper Scripts
 - **Last tested Sapiens Dedicated Server Version: 0.5.0.47**
 
-This repository offers a comprehensive toolkit for the installation and management of the Sapiens Dedicated Server on Linux, specifically optimized for Ubuntu (23.10 or greater). These scripts simplify the process of running the server, performing updates, and managing server life cycles.
+This repository offers a comprehensive command line interface for the installation and management of the Sapiens Dedicated Server on Linux, specifically optimized for Ubuntu (23.10 or greater). These scripts simplify the process of running the server, performing updates, and managing the server's life cycle.
 
 ## Compatibility Note
 
-These scripts were developed and thoroughly tested on Ubuntu 23.10 and are designed to run in a Bash environment with `apt` as the package manager. While efforts have been made to ensure compatibility across different Linux distributions, the functionality may vary outside the tested environment. If you encounter issues on other distributions, especially those not using `apt`, please report them. This will help us assess the feasibility of extending compatibility or provide specific workarounds.
+These scripts were developed and thoroughly tested on Ubuntu 23.10 and are designed to run in a Bash environment with `apt` as the package manager. While efforts have been made to ensure compatibility across different Linux distributions, the functionality may vary outside the tested environment. If you encounter issues on other distributions please report them. This will help me assess the feasibility of extending compatibility or provide specific workarounds.
+
+Certainly! Tailoring the section to focus on optimizing the server operation within a user-specific context and considering how SteamCMD functions can make the instructions more relevant for users who may or may not want to set up a new account. Here's the revised section:
+
+---
 
 ## Prerequisites
 
-The server should not be run as the root user for security reasons. Set up a non-root user with sudo privileges for server operations:
+To optimize the performance and management of your Sapiens server, it is advisable to run the server within a dedicated user account. This setup takes advantage of how SteamCMD installs and manages the game's executable and related files within the `.local` directory of a user's home directory. While setting up a new user account is not mandatory, doing so can help maintain a clean and organized environment, especially useful for isolating the server from other system processes.  
 
-```bash
-# Add user
-sudo adduser sapserver
+### Configuring a Dedicated User (If Required)
 
-# Add user to sudo group
-sudo usermod -aG sudo sapserver
-```
+If you choose to set up a new user account for the server, follow these steps:
+
+1. **Create the User**: This step creates a new user which will be used exclusively to operate the server.
+
+    ```bash
+    sudo adduser sapserver
+    ```
+
+2. **Grant Sudo Access**: Provide `sudo` access to allow the user to install necessary software and manage server settings. This access is controlled and does not compromise the security principles of running server processes.
+
+    ```bash
+    sudo usermod -aG sudo sapserver
+    ```
 
 ## Installation
 
@@ -25,7 +37,7 @@ It is best to start fresh and delete any previous version installed. As long as 
 
 **Important**: Before deleting any old `sapiens-server` folder, ensure to back up any important data from `world_backups` and `log_backups`.
 
-Clone the repository into a directory called `sapiens-server` in the home directory of the user that will run the server:
+Run the clone command in the home directory and it will create a folder `sapiens-server` where the scripts will reside:
 
 ```bash
 git clone https://github.com/ChillGenXer/sapiens-server.git
@@ -40,6 +52,7 @@ chmod +x sapiens.sh
 
 ## Configuration
 
+Once you have a configured server
 Edit the `config.lua` file to customize your server settings. This file can be edited using the `./sapiens.sh worldconfig` command, which opens the configuration in the default editor.
 
 ### Primary Configuration Options:
