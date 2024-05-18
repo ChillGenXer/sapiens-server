@@ -1,4 +1,7 @@
 #Change Log#
+##1.0.6##
+- Updated incorrect selection for log reporting on active world summary.
+
 ##1.0.5##
 - Got rid of that annoying steamupdate.txt file
 

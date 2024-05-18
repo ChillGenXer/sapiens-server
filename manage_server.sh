@@ -50,7 +50,7 @@ active_world_summary(){
     echo -e "${BLUE}Steam Port${NC}             : $((UDP_PORT + 1))"  # Calculate Steam port on the fly
     echo -e "${BLUE}HTTP Port${NC}              : $HTTP_PORT"
     echo -e "${BLUE}Advertising In-Game${NC}    : $( [ "$ADVERTISE" == "--advertise " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
-    echo -e "${BLUE}Send logs on crash${NC}     : $( [ "$SEND_LOGS" == "--yes " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
+    echo -e "${BLUE}Send logs on crash${NC}     : $( [ "$PROVIDE_LOGS" == "--yes " ] && echo -e "${BRIGHT_GREEN}Yes${NC}" || echo "${BRIGHT_RED}No${NC}")"
     echo -e "---------------------------------------------------------------------"
     echo -e "To change this configuration, run ${CYAN}./sapiens.sh${NC} ${GREEN}config${NC}"
     echo ""
