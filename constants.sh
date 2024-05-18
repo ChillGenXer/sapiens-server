@@ -8,11 +8,11 @@ CONFIG_FILE="$SCRIPT_DIR/config.sh"
 WORLD_BACKUP_DIR="$SCRIPT_DIR/world_backups"
 LOG_DIR="$SCRIPT_DIR/logs"
 LOG_BACKUP_DIR="$SCRIPT_DIR/log_backups"
-DEBUG_MODE="on"                                             # Set to "on" to enable debug logging, "off" to disable.
+DEBUG_MODE="off"                                             # Set to "on" to enable debug logging, "off" to disable.
 SCREEN_NAME="sapiens-server"
 SHUTDOWN_WAIT=5                                             # How many seconds to wait for the screen session to end.
 SCRIPT_NAME="Sapiens Linux Server Helper Scripts"
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 GITHUB_URL="https://github.com/ChillGenXer/sapiens-server"
 
 # Steam locations (Server executable)
