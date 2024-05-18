@@ -62,6 +62,7 @@ start_world() {
                 ;;
         esac
     else
+        upgrade_server          # Check to see if we have the latest version.
         screen -dmS $SCREEN_NAME /bin/bash -c "./startworld.sh"
         logit "INFO" "start_world: Sapiens world '$WORLD_NAME' started in the background. View the console with ./sapiens.sh console." "echo"
     fi
@@ -199,8 +200,19 @@ auto_restart() {
 }
 
 # Send a chat message to the online players in the world.
+# broadcast_message(){
+#     local message=$1
+#     logit "INFO" "broadcast_message: $message"
+#     screen -S "$SCREEN_NAME" -p 0 -X stuff "server:broadcast('$message')$(printf \\r)" >/dev/null 2>&1
+# }
+
 broadcast_message(){
     local message=$1
+    # Escape backslashes first, then double quotes
+    message=${message//\\/\\\\} # Replace \ with \\
+    message=${message//\"/\\\"} # Replace " with \"
+    
     logit "INFO" "broadcast_message: $message"
-    screen -S "$SCREEN_NAME" -p 0 -X stuff "server:broadcast('$message')$(printf \\r)" >/dev/null 2>&1
+    # Use double quotes for the message
+    screen -S "$SCREEN_NAME" -p 0 -X stuff "server:broadcast(\"$message\")$(printf \\r)" >/dev/null 2>&1
 }
