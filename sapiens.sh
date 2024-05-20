@@ -54,7 +54,8 @@ case $1 in
         ;;
     restart)
         logit "INFO" "Restarting server"
-        broadcast_message "Server is being restarted..."
+        broadcast_message "The world is being restarted..."
+        sleep 5
         stop_world             # manage_world.sh
         start_world            # manage_world.sh.  This will also check that we have the latest Sapiens executable.
         ;;
