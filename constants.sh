@@ -12,7 +12,7 @@ DEBUG_MODE="off"                                             # Set to "on" to en
 SCREEN_NAME="sapiens-server"
 SHUTDOWN_WAIT=5                                             # How many seconds to wait for the screen session to end.
 SCRIPT_NAME="Sapiens Linux Server Helper Scripts"
-SCRIPT_VERSION="1.0.6"
+SCRIPT_VERSION="1.0.7"
 GITHUB_URL="https://github.com/ChillGenXer/sapiens-server"
 
 # Steam locations (Server executable)

@@ -190,57 +190,8 @@ install_dependencies(){
 
 # Uses a steamcmd config file where the sapiens appID is set. Despite the name, this can be used for a fresh install as well.
 upgrade_server() {
-    # Function to get the current build id from steamcmd
-    get_current_buildid() {
-        local output=$(steamcmd +login anonymous +app_info_update 1 +app_info_print "2886350" +quit)
-        logit "DEBUG" "$output"
-        echo "$output" | grep -oP '"buildid"\s*"\K[^"]+'
-    }
-
-    # Function to read the stored build id from the file
-    read_stored_buildid() {
-        if [[ -f $SAPIENS_BUILD_FILE ]] && [[ -s $SAPIENS_BUILD_FILE ]]; then
-            cat $SAPIENS_BUILD_FILE
-        else
-            echo "0" # Default to 0 if the file doesn't exist or is empty
-        fi
-    }
-
-    # Function to write the build id to the file
-    write_stored_buildid() {
-        local buildid=$1
-        echo $buildid > $SAPIENS_BUILD_FILE
-    }
-
     logit "INFO" "Checking for Sapiens Dedicated Server updates" "echo"
-
-    # Get the current build id
-    local current_buildid=$(get_current_buildid)
-    logit "INFO" "Sapiens Server Steamcmd build ID: $current_buildid" "echo"
-
-    # Read the stored build id from the file
-    local SAPIENS_BUILD_ID=$(read_stored_buildid)
-    logit "INFO" "Sapiens Server Installed build ID: $SAPIENS_BUILD_ID" "echo"
-
-    # Compare build ids
-    if (( current_buildid > SAPIENS_BUILD_ID )); then
-        logit "INFO" "New Sapiens build available. Updating Sapiens Dedicated Server" "echo"
-
-        # Run steamcmd with the update script
-        steamcmd +force_install_dir sapiens +login anonymous +app_update 2886350 validate +quit
-
-        # Get the new build id after the update
-        local new_buildid=$(get_current_buildid)
-
-        # Write the new build id to the file
-        write_stored_buildid $new_buildid
-
-        logit "INFO" "Sapiens Dedicated Server updated to Build ID: $new_buildid" "echo"
-        logit "INFO" "Sapiens Game Version: $(get_sapiens_version)" "echo"
-    else
-        logit "INFO" "No update needed. Sapiens Dedicated Server is up to date." "echo"
-        logit "INFO" "Sapiens Game Version: $(get_sapiens_version)" "echo"
-    fi
+    steamcmd +force_install_dir sapiens +login anonymous +app_update 2886350 validate +quit
 }
 
 # Gets the current version of the Sapiens linuxServer executable

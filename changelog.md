@@ -1,4 +1,7 @@
 #Change Log#
+##1.0.7##
+- Removed Build ID check from update
+
 ##1.0.6##
 - Updated incorrect selection for log reporting on active world summary.
 
